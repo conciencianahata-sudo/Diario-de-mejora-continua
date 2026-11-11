@@ -1,6 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Diario del 1%</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -87,7 +90,8 @@ svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -158,7 +162,7 @@ function soft(){if(view!=="form"&&!editTask)render()}
 
 /* ---------- cálculos ---------- */
 const eOf=id=>entries.filter(e=>e.taskId===id).sort((a,b)=>a.date.localeCompare(b.date)||(a.ts||0)-(b.ts||0));
-function levels(id){let v=1;return eOf(id).map(e=>{v*=FACTOR[e.worked]&&e.status!=="skipped"?FACTOR[e.worked]:1;return {e,v}})}
+function levels(id){let v=1;return eOf(id).map(e=>{v*=FACTOR[e.worked]&&e.status!=="skipped"&&e.act!=="base"?FACTOR[e.worked]:1;return {e,v}})}
 function level(id){const l=levels(id);return l.length?l[l.length-1].v:1}
 function streak(id){
   const days=new Set(eOf(id).filter(e=>e.status!=="skipped").map(e=>e.date));
@@ -303,7 +307,8 @@ function vForm(){
       <label class="f" for="lf-mu">Desperdicio que noté (muda)<select id="lf-mu">${MUDAS.map(m=>`<option value="${m[0]}">${esc(m[1])}</option>`).join("")}</select></label>
       <label class="f" for="lf-notes">Lo que observé<textarea id="lf-notes" placeholder="Qué pasó realmente, sin juzgarlo"></textarea></label></section>
     <section><div class="step"><i>ACTUAR</i><h3>¿Qué hago con esto?</h3></div>
-      <div class="seg only-did" role="radiogroup" aria-label="Decisión"><input type="radio" name="act" id="ac-e" value="estandarizar" checked><label for="ac-e">Queda como mi nueva forma</label><input type="radio" name="act" id="ac-a" value="ajustar"><label for="ac-a">Lo ajusto y lo pruebo otra vez</label><input type="radio" name="act" id="ac-d" value="descartar"><label for="ac-d">Lo descarto</label></div>
+      <div class="seg only-did" role="radiogroup" aria-label="Decisión"><input type="radio" name="act" id="ac-e" value="estandarizar" checked><label for="ac-e">Queda como mi nueva forma</label><input type="radio" name="act" id="ac-a" value="ajustar"><label for="ac-a">Lo ajusto y lo pruebo otra vez</label><input type="radio" name="act" id="ac-d" value="descartar"><label for="ac-d">Lo descarto</label><input type="radio" name="act" id="ac-b" value="base"><label for="ac-b">Línea base</label></div>
+      <p class="small muted only-did">Línea base: úsala la primera vez, para medir cómo haces la tarea hoy sin cambiar nada. No suma al nivel.</p>
       <label class="f" for="lf-next">Mi siguiente 1%<small>Esto aparece como tu plan la próxima vez.</small><textarea id="lf-next" placeholder="El próximo ajuste a probar"></textarea></label></section>
     <div class="row"><button class="primary" type="button" data-act="savelog">Guardar registro</button><button type="button" data-act="cancellog">Cancelar</button></div>
   </form>`;
@@ -314,7 +319,7 @@ function bindForm(){
   f.addEventListener("change",e=>{
     if(e.target.name==="status"){f.dataset.status=e.target.value;
       if(e.target.value==="skipped"&&!$("#lf-next").value)$("#lf-next").value="Hacer la versión de 2 minutos"+(t&&t.mini?": "+t.mini:"");}
-    if(e.target.name==="worked"){const m={si:"ac-e",parcial:"ac-a",no:"ac-d"};$("#"+m[e.target.value]).checked=true}
+    if(e.target.name==="worked"){const m={si:"ac-e",parcial:"ac-a",no:"ac-d"};if(!$("#ac-b").checked)$("#"+m[e.target.value]).checked=true}
   });
   logSave=async()=>{
     const v=n=>(f.querySelector(`[name="${n}"]:checked`)||{}).value;
@@ -365,7 +370,7 @@ function vProgreso(){
   if(!chartTask||!ts.find(t=>t.id===chartTask))chartTask=ts[0].id;
   const t=ts.find(t=>t.id===chartTask),es=eOf(t.id);
   const done=es.filter(e=>e.status!=="skipped"),full=es.filter(e=>e.status==="done").length;
-  const improv=done.filter(e=>e.worked==="si"||e.worked==="parcial").length;
+  const improv=done.filter(e=>(e.worked==="si"||e.worked==="parcial")&&e.act!=="base").length;
   const mu={};entries.forEach(e=>{if(e.muda)mu[e.muda]=(mu[e.muda]||0)+1});
   const muk=Object.keys(mu).sort((a,b)=>mu[b]-mu[a]);const mx=muk.length?mu[muk[0]]:1;
   const avgSat=done.filter(e=>e.sat).length?(done.filter(e=>e.sat).reduce((s,e)=>s+e.sat,0)/done.filter(e=>e.sat).length).toFixed(1):"–";
@@ -405,7 +410,7 @@ async function loadExample(){
     stack:"terminar de cenar",cue:"llevar los platos al fregadero y lavarlos antes de sentarme a descansar",
     mini:"lavar un solo vaso",reward:"ver la cocina limpia y tomarme un té"};
   const R=[
-    {status:"done",minutes:25,improvement:"Línea base: lavar como siempre y cronometrar",worked:"parcial",sat:3,muda:"movimiento",notes:"Tardé 25 minutos; perdí tiempo buscando la esponja y el jabón.",act:"ajustar",next:"Dejar la esponja y el jabón junto al fregadero antes de cenar",why:[]},
+    {status:"done",minutes:25,improvement:"Línea base: lavar como siempre y cronometrar",worked:"parcial",sat:3,muda:"movimiento",notes:"Tardé 25 minutos; perdí tiempo buscando la esponja y el jabón.",act:"base",next:"Dejar la esponja y el jabón junto al fregadero antes de cenar",why:[]},
     {status:"done",minutes:20,improvement:"Dejar la esponja y el jabón junto al fregadero antes de cenar",worked:"si",sat:4,muda:"movimiento",notes:"Ya no busqué nada. Bajó a 20 minutos.",act:"estandarizar",next:"Remojar las ollas con agua y jabón mientras ceno",why:[]},
     {status:"done",minutes:15,improvement:"Remojar las ollas con agua y jabón mientras ceno",worked:"si",sat:4,muda:"espera",notes:"Las ollas salieron casi solas. Esperé a que se calentara el agua.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
     {status:"skipped",minutes:0,improvement:"Poner a calentar el agua al empezar a cenar",worked:"no",sat:0,muda:"",notes:"",act:"ajustar",next:"Hacer la versión de 2 minutos: lavar un vaso",why:["Estaba muy cansado y me fui a dormir","Cené tarde","Salí tarde del trabajo","No dejé un plan para los días largos","Mi tarea no tenía una versión mínima para esos días"]},
@@ -475,5 +480,5 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-
-</body></html>
+</body>
+</html>
