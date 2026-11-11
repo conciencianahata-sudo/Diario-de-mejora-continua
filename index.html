@@ -1,0 +1,479 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Diario del 1%</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: una columna de trabajo (máx. 760px), barra de pestañas fija arriba, tarjetas solo donde hay una acción. */
+:root{
+  --bg:#F5F5F9; --surface:#FFFFFF; --ink:#191A2E; --muted:#5E6078; --line:#DEDFEA;
+  --accent:#3A3DA8; --accent-ink:#FFFFFF; --accent-soft:#E6E7F8;
+  --good:#1E7B54; --good-soft:#DDF1E7; --warn:#9A6208; --warn-soft:#FBEFD5; --bad:#B23A3A;
+  --display:"Bricolage Grotesque","Inter",system-ui,sans-serif; --text:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12131F; --surface:#1B1C2C; --ink:#ECEDF7; --muted:#A3A5BE; --line:#2E3045;
+  --accent:#9B9EF2; --accent-ink:#12131F; --accent-soft:#2A2C50;
+  --good:#5FCB9A; --good-soft:#18362A; --warn:#E9B35A; --warn-soft:#3A2E14; --bad:#F08A8A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12131F; --surface:#1B1C2C; --ink:#ECEDF7; --muted:#A3A5BE; --line:#2E3045;
+  --accent:#9B9EF2; --accent-ink:#12131F; --accent-soft:#2A2C50;
+  --good:#5FCB9A; --good-soft:#18362A; --warn:#E9B35A; --warn-soft:#3A2E14; --bad:#F08A8A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--text);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px;font-variant-numeric:tabular-nums}
+.wrap{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:30px;font-weight:700;letter-spacing:-.02em}
+h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);padding:14px 0 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:10px}
+.brand .sub{font-size:13px;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto}
+nav.tabs a{padding:10px 14px;font-weight:600;font-size:14px;color:var(--muted);text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
+main{display:flex;flex-direction:column;gap:20px;padding-top:22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.stat b{font:700 24px/1.1 var(--display)}
+.lvl{font:700 28px/1 var(--display);color:var(--accent)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+button,.btn{font:600 14px var(--text);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.ghost{border-color:transparent;color:var(--muted);padding:6px 8px}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
+label.f small{font-weight:400;color:var(--muted);font-size:13px}
+input[type=text],input[type=date],input[type=number],textarea,select{font:400 15px var(--text);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px 13px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;background:var(--bg)}
+.seg input:checked+label{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+form.f section{display:flex;flex-direction:column;gap:12px;padding-top:16px;border-top:1px solid var(--line)}
+form.f section:first-of-type{border-top:0;padding-top:0}
+.step{display:flex;gap:10px;align-items:baseline}
+.step i{font:700 12px var(--display);font-style:normal;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:6px;letter-spacing:.04em}
+.only-skip{display:none}
+form[data-status="skipped"] .only-skip{display:flex}
+form[data-status="skipped"] .only-did{display:none}
+.banner{padding:12px 14px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-weight:500}
+.example{border:1px dashed var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);grid-auto-columns:14px;gap:3px;overflow-x:auto;padding-bottom:4px}
+.heat i{border-radius:3px;background:var(--accent-soft)}
+.heat i[data-n="1"]{background:var(--accent);opacity:.55}
+.heat i[data-n="2"]{background:var(--accent)}
+.bar{display:grid;grid-template-columns:minmax(90px,150px) 1fr 24px;gap:10px;align-items:center;font-size:13px}
+.bar span.t{height:10px;border-radius:5px;background:var(--accent)}
+.hist{display:flex;flex-direction:column}
+.hist .item{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
+.hist .item>div{min-width:0;overflow-wrap:anywhere}
+ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:90vw}
+svg text{fill:var(--muted);font:12px var(--text)}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
+@media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Diario del 1%</h1>
+      <span class="sub" id="syncnote">Cargando…</span>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Secciones">
+      <a href="#hoy" data-v="hoy">Hoy</a>
+      <a href="#tareas" data-v="tareas">Mis tareas</a>
+      <a href="#progreso" data-v="progreso">Progreso</a>
+      <a href="#metodo" data-v="metodo">Método</a>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const dstr=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today=()=>dstr(new Date());
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return dstr(d)};
+const fmt=s=>parse(s).toLocaleDateString("es",{weekday:"short",day:"numeric",month:"short"});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const MUDAS=[["","Ninguna que haya notado"],["espera","Espera (tiempo muerto antes de empezar o entre pasos)"],["movimiento","Movimiento (buscar cosas, ir y venir)"],["transporte","Transporte (cambiar de lugar o de herramienta sin necesidad)"],["defectos","Defectos (rehacer lo que salió mal)"],["procesamiento","Procesamiento extra (hacer más pasos de los necesarios)"],["inventario","Inventario (pendientes acumulados)"],["sobreproduccion","Sobreproducción (hacer más de lo que hacía falta)"]];
+const mudaName=k=>(MUDAS.find(m=>m[0]===k)||["",""])[1].split(" (")[0];
+const FACTOR={si:1.01,parcial:1.005,no:1};
+
+/* ---------- estado ---------- */
+let tasks=[],entries=[],view="hoy",formTask=null,showArchived=false,editTask=null,chartTask=null,confirmKey=null;
+let db=null,base=null,loaded=false,logSave=null;
+
+/* ---------- persistencia: db privada del usuario + copia local ---------- */
+const LS="diario1pct.v1";
+function lsRead(){try{const j=JSON.parse(localStorage.getItem(LS)||"null");if(j){tasks=j.tasks||[];entries=j.entries||[]}}catch(e){}}
+function lsWrite(){try{localStorage.setItem(LS,JSON.stringify({tasks,entries}))}catch(e){}}
+function note(t){$("#syncnote").textContent=t}
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+async function put(col,obj){
+  lsWrite();
+  if(!base)return;
+  try{await base.collection(col).doc(obj.id).set(obj)}catch(e){note("No se pudo guardar en tu cuenta");}
+}
+async function del(col,id){lsWrite();if(!base)return;try{await base.collection(col).doc(id).delete()}catch(e){}}
+async function boot(){
+  lsRead();
+  render();
+  let timer=setTimeout(()=>{if(!loaded){note("Sin conexión con tu cuenta: usando este navegador");loaded=true}},10000);
+  try{
+    if(!window.claude||!window.claude.use)throw 0;
+    const user=await window.claude.use("user");
+    const id=user?await user.id():null;
+    db=await window.claude.use("db");
+    if(!db||!id)throw 0;
+    base=db.doc("data/users/"+id+"/diario");
+    note("Guardado en tu cuenta");
+    base.collection("tareas").onSnapshot(s=>{tasks=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));loaded=true;clearTimeout(timer);lsWrite();soft()},()=>note("Sin conexión con tu cuenta"));
+    base.collection("entradas").onSnapshot(s=>{entries=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));lsWrite();soft()},()=>{});
+  }catch(e){base=null;note("Guardado solo en este navegador");}
+}
+function soft(){if(view!=="form"&&!editTask)render()}
+
+/* ---------- cálculos ---------- */
+const eOf=id=>entries.filter(e=>e.taskId===id).sort((a,b)=>a.date.localeCompare(b.date)||(a.ts||0)-(b.ts||0));
+function levels(id){let v=1;return eOf(id).map(e=>{v*=FACTOR[e.worked]&&e.status!=="skipped"?FACTOR[e.worked]:1;return {e,v}})}
+function level(id){const l=levels(id);return l.length?l[l.length-1].v:1}
+function streak(id){
+  const days=new Set(eOf(id).filter(e=>e.status!=="skipped").map(e=>e.date));
+  let d=today(),n=0;
+  if(!days.has(d))d=addDays(d,-1);
+  while(days.has(d)){n++;d=addDays(d,-1)}
+  return n;
+}
+const act=()=>tasks.filter(t=>!t.archived).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+const x=n=>"×"+n.toFixed(3);
+const fm=n=>(Math.round(n*10)/10).toString().replace(".",",");
+function timeStats(id){
+  const a=eOf(id).filter(e=>e.status==="done"&&e.minutes>0);
+  if(!a.length)return null;
+  const m=a.map(e=>e.minutes),first=m[0],last=m[m.length-1];
+  return {n:m.length,first,last,best:Math.min(...m),avg:m.reduce((s,v)=>s+v,0)/m.length,pct:m.length>1?Math.round(100*(last-first)/first):0,list:a};
+}
+const sgn=p=>(p>0?"+":p<0?"−":"")+Math.abs(p)+" %";
+function timeLine(id){
+  const s=timeStats(id);if(!s)return "";
+  return `<div class="small"><span class="label">Tiempo</span><br>${s.n>1?`Primera vez ${fm(s.first)} min → última ${fm(s.last)} min <span class="pill ${s.pct<=0?"good":"warn"}">${sgn(s.pct)}</span>`:`Última vez: ${fm(s.last)} min. Registra otra vez para comparar.`}</div>`;
+}
+function timeHint(id){
+  const s=timeStats(id);
+  return s?`La última vez fueron ${fm(s.last)} min. Solo se comparan las veces completas, no la versión de 2 minutos.`:"Sirve para comparar después. Solo se comparan las veces completas, no la versión de 2 minutos.";
+}
+function timeChart(list){
+  if(list.length<2)return `<p class="muted small">Con dos registros completos o más aparece la línea del tiempo.</p>`;
+  const W=640,H=220,m={l:46,r:16,t:14,b:30};
+  const maxv=Math.max(...list.map(e=>e.minutes))*1.1;
+  const X=i=>m.l+(W-m.l-m.r)*(i/(list.length-1));
+  const Y=v=>H-m.b-(H-m.t-m.b)*(v/maxv);
+  const pts=list.map((e,i)=>[X(i),Y(e.minutes)]);
+  const path=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const last=pts[pts.length-1];
+  const ticks=[0,maxv/2,maxv];
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Minutos por vez: de ${fm(list[0].minutes)} a ${fm(list[list.length-1].minutes)} en ${list.length} registros">
+    ${ticks.map(v=>`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${Math.round(v)} min</text>`).join("")}
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--accent)"/>`).join("")}
+    <circle cx="${last[0]}" cy="${last[1]}" r="5.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${m.l}" y="${H-8}">${esc(fmt(list[0].date))}</text><text x="${W-m.r}" y="${H-8}" text-anchor="end">${esc(fmt(list[list.length-1].date))}</text></svg>`;
+}
+function timeCard(t){
+  const s=timeStats(t.id);
+  if(!s)return `<div class="card"><h3>Tiempo por vez</h3><p class="muted small">Anota los minutos al registrar la tarea completa. Con dos registros o más verás aquí si el tiempo bajó.</p></div>`;
+  const saved=s.first-s.last;
+  return `<div class="card"><h3>Tiempo por vez</h3>
+    <div class="grid2"><div class="stat"><span class="label">Primera vez</span><b>${fm(s.first)} min</b></div><div class="stat"><span class="label">Última vez</span><b>${fm(s.last)} min</b></div><div class="stat"><span class="label">Mejor tiempo</span><b>${fm(s.best)} min</b></div><div class="stat"><span class="label">Promedio</span><b>${fm(s.avg)} min</b></div></div>
+    ${s.n>1?`<p>${saved>0?`Ahora tardas ${fm(saved)} min menos que la primera vez (${Math.abs(s.pct)} % menos).`:saved<0?`Ahora tardas ${fm(-saved)} min más que la primera vez. Revisa qué cambió en el proceso.`:"Tardas lo mismo que la primera vez."}</p>`:""}
+    ${timeChart(s.list)}
+    <p class="muted small">Solo cuentan los registros con la tarea completa. Cuanto más baja la línea, menos tiempo toma.</p></div>`;
+}
+
+/* ---------- vistas ---------- */
+function render(){
+  document.querySelectorAll("#tabs a").forEach(a=>a.setAttribute("aria-current",(a.dataset.v===(view==="form"?"hoy":view))?"page":"false"));
+  const m=$("#main");
+  m.innerHTML=view==="form"?vForm():view==="tareas"?vTareas():view==="progreso"?vProgreso():view==="metodo"?vMetodo():vHoy();
+  if(view==="form")bindForm();
+}
+function emptyState(){
+  return `<div class="card">
+    <h2>Empieza con una tarea pequeña</h2>
+    <p class="muted">Una tarea es algo que repites: preparar una sesión, responder mensajes, escribir notas clínicas. Cada vez que la haces, anotas el cambio de 1% que probaste y si funcionó. Con 1% mejor cada día, el año cierra en 1,01<sup>365</sup> ≈ 37,8 veces.</p>
+    <div class="example"><span class="label">Ejemplo (no es tuyo)</span>
+      <b>Escribir la nota de cada sesión</b>
+      <span class="muted small">Soy alguien que deja registro claro de su trabajo. · Después de despedir al paciente, abro la plantilla en mi escritorio. · Versión de 2 minutos: escribir solo la primera línea.</span>
+      <span class="small">1% de hoy: <i>dejar la plantilla abierta desde la mañana para no buscarla.</i> → Muda detectada: movimiento.</span></div>
+    <div class="row"><button class="primary" data-act="newtask">Crear mi primera tarea</button><button data-act="example">Cargar ejemplo: lavar los platos</button></div></div>`;
+}
+function vHoy(){
+  const ts=act();
+  const t0=today();
+  const total=entries.filter(e=>e.status!=="skipped").length;
+  const week=entries.filter(e=>e.date>addDays(t0,-7)&&e.status!=="skipped").length;
+  let h=`<div class="row between"><div><span class="label">${esc(fmt(t0))}</span><h2>Hoy</h2></div></div>`;
+  if(!ts.length)return h+emptyState();
+  h+=`<div class="grid2"><div class="stat"><span class="label">Registros</span><b>${total}</b></div><div class="stat"><span class="label">Últimos 7 días</span><b>${week}</b></div></div>`;
+  h+=ts.map(t=>{
+    const es=eOf(t.id),last=es[es.length-1],doneToday=es.some(e=>e.date===t0),L=level(t.id),S=streak(t.id);
+    let msg="";
+    if(last&&last.status==="skipped"&&!doneToday)msg=`<div class="banner">${last.date===t0?"":"La última vez no la hiciste. "}Nunca falles dos veces: hoy haz al menos la versión de 2 minutos${t.mini?`: ${esc(t.mini)}`:""}.</div>`;
+    return `<article class="card">
+      <div class="row between"><h3>${esc(t.name)}</h3><span class="lvl" title="Nivel acumulado">${x(L)}</span></div>
+      ${t.identity?`<p class="muted small">Soy alguien que ${esc(t.identity)}</p>`:""}
+      ${t.stack||t.cue?`<p class="small"><b>Señal:</b> ${t.stack?`Después de ${esc(t.stack)}`:""}${t.stack&&t.cue?", ":""}${esc(t.cue||"")}</p>`:""}
+      ${msg}
+      ${timeLine(t.id)}
+      <div class="small"><span class="label">Mi 1% de hoy</span><br>${last&&last.next?esc(last.next):`<span class="muted">Todavía no definido. Lo escribes al registrar.</span>`}</div>
+      ${t.standards&&t.standards.length?`<div class="small"><span class="label">Mi estándar actual</span><ul class="plain">${t.standards.slice(-3).map(s=>`<li>${esc(s.text)}</li>`).join("")}</ul></div>`:""}
+      <div class="row between"><div class="row"><span class="pill ${S?"good":""}">${S} ${S===1?"día":"días"} seguidos</span>${doneToday?`<span class="pill good">Registrada hoy</span>`:`<span class="pill warn">Pendiente</span>`}</div>
+      <button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div>
+    </article>`}).join("");
+  return h;
+}
+function taskForm(t){
+  t=t||{};
+  const f=(id,l,hint,val,ph)=>`<label class="f" for="${id}">${l}${hint?`<small>${hint}</small>`:""}<input type="text" id="${id}" value="${esc(val||"")}" placeholder="${esc(ph||"")}"></label>`;
+  return `<form class="card f" id="taskform" data-id="${esc(t.id||"")}">
+    <h3>${t.id?"Editar tarea":"Nueva tarea"}</h3>
+    ${f("tf-name","Nombre de la tarea","Algo que repites.",t.name,"Escribir la nota de cada sesión")}
+    ${f("tf-identity","Soy alguien que…","Identidad que refuerza esta tarea.",t.identity,"deja registro claro de su trabajo")}
+    ${f("tf-stack","Después de…","Hábito que ya tienes y funciona como señal.",t.stack,"despedir al paciente")}
+    ${f("tf-cue","Haré… en… (cuándo y dónde)","Intención de implementación.",t.cue,"abrir la plantilla en mi escritorio")}
+    ${f("tf-mini","Versión de 2 minutos","La forma más pequeña de empezar.",t.mini,"escribir solo la primera línea")}
+    ${f("tf-reward","Recompensa inmediata","Algo que te haga sentir que avanzaste.",t.reward,"marcar el día en el diario")}
+    <div class="row"><button class="primary" type="button" data-act="savetask">Guardar</button><button type="button" data-act="canceltask">Cancelar</button></div>
+  </form>`;
+}
+function vTareas(){
+  if(editTask!==null)return taskForm(editTask===true?null:tasks.find(t=>t.id===editTask));
+  const list=tasks.filter(t=>!!t.archived===showArchived).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  let h=`<div class="row between"><h2>Mis tareas</h2><div class="row">${tasks.some(t=>t.example)?"":'<button data-act="example">Cargar ejemplo</button>'}<button class="primary" data-act="newtask">Nueva tarea</button></div></div>`;
+  if(!tasks.length)return h+emptyState();
+  h+=`<div class="seg" role="group"><input type="radio" name="arch" id="a0" ${!showArchived?"checked":""} data-act="arch0"><label for="a0">Activas</label><input type="radio" name="arch" id="a1" ${showArchived?"checked":""} data-act="arch1"><label for="a1">Archivadas</label></div>`;
+  if(!list.length)h+=`<p class="muted">No hay tareas en esta lista.</p>`;
+  h+=list.map(t=>`<div class="card"><div class="row between"><h3>${esc(t.name)}</h3><span class="muted small">${eOf(t.id).length} registros · ${x(level(t.id))}</span></div>
+    ${t.mini?`<p class="small"><b>2 minutos:</b> ${esc(t.mini)}</p>`:""}${t.reward?`<p class="small"><b>Recompensa:</b> ${esc(t.reward)}</p>`:""}
+    <div class="row"><button data-act="edit" data-id="${t.id}">Editar</button><button data-act="archive" data-id="${t.id}">${t.archived?"Restaurar":"Archivar"}</button>
+    <button class="ghost danger" data-act="deltask" data-id="${t.id}">${confirmKey==="t"+t.id?"Confirmar: borrar tarea y registros":"Borrar"}</button></div></div>`).join("");
+  return h;
+}
+function vForm(){
+  const t=tasks.find(t=>t.id===formTask);if(!t)return "";
+  const es=eOf(t.id),last=es[es.length-1];
+  const prefill=last&&last.next?last.next:"";
+  return `<div><span class="label">${esc(t.name)}</span><h2>Registro</h2></div>
+  <form class="card f" id="logform" data-status="done">
+    <section><div class="step"><i>PLAN</i><h3>Mi 1% de esta vez</h3></div>
+      <label class="f" for="lf-imp">¿Qué cambio pequeño voy a probar?<small>Un ajuste mínimo: menos pasos, mejor preparación, un obstáculo menos.</small>
+      <textarea id="lf-imp" placeholder="Dejar la plantilla abierta desde la mañana">${esc(prefill)}</textarea></label>
+      <label class="f" for="lf-date">Fecha<input type="date" id="lf-date" value="${today()}" max="${today()}"></label></section>
+    <section><div class="step"><i>HACER</i><h3>¿Qué pasó?</h3></div>
+      <div class="seg" role="radiogroup" aria-label="Estado"><input type="radio" name="status" id="st-d" value="done" checked><label for="st-d">La hice completa</label><input type="radio" name="status" id="st-m" value="mini"><label for="st-m">Solo la versión de 2 min</label><input type="radio" name="status" id="st-s" value="skipped"><label for="st-s">No la hice</label></div>
+      <label class="f only-did" for="lf-min">Tiempo que tomó, en minutos<small>${timeHint(t.id)}</small><input type="number" id="lf-min" min="0" max="999" step="0.5" inputmode="decimal" placeholder="Ej.: 20"></label>
+      <div class="only-skip" style="flex-direction:column;gap:10px"><p class="small muted">Cinco porqués: pregunta por qué una y otra vez hasta llegar a la causa, no al síntoma.</p>
+        ${[1,2,3,4,5].map(i=>`<label class="f" for="lf-w${i}">${i===1?"No la hice. ¿Por qué?":"¿Y por qué?"}<input type="text" id="lf-w${i}"></label>`).join("")}</div></section>
+    <section class="only-did"><div class="step"><i>VERIFICAR</i><h3>¿Funcionó el cambio?</h3></div>
+      <div class="seg" role="radiogroup" aria-label="Resultado"><input type="radio" name="worked" id="wk-s" value="si" checked><label for="wk-s">Sí</label><input type="radio" name="worked" id="wk-p" value="parcial"><label for="wk-p">En parte</label><input type="radio" name="worked" id="wk-n" value="no"><label for="wk-n">No</label></div>
+      <div><span class="label">¿Qué tan satisfecho quedé?</span><div class="seg" style="margin-top:6px" role="radiogroup" aria-label="Satisfacción">${[1,2,3,4,5].map(i=>`<input type="radio" name="sat" id="sa${i}" value="${i}" ${i===4?"checked":""}><label for="sa${i}">${i}</label>`).join("")}</div></div>
+      <label class="f" for="lf-mu">Desperdicio que noté (muda)<select id="lf-mu">${MUDAS.map(m=>`<option value="${m[0]}">${esc(m[1])}</option>`).join("")}</select></label>
+      <label class="f" for="lf-notes">Lo que observé<textarea id="lf-notes" placeholder="Qué pasó realmente, sin juzgarlo"></textarea></label></section>
+    <section><div class="step"><i>ACTUAR</i><h3>¿Qué hago con esto?</h3></div>
+      <div class="seg only-did" role="radiogroup" aria-label="Decisión"><input type="radio" name="act" id="ac-e" value="estandarizar" checked><label for="ac-e">Queda como mi nueva forma</label><input type="radio" name="act" id="ac-a" value="ajustar"><label for="ac-a">Lo ajusto y lo pruebo otra vez</label><input type="radio" name="act" id="ac-d" value="descartar"><label for="ac-d">Lo descarto</label></div>
+      <label class="f" for="lf-next">Mi siguiente 1%<small>Esto aparece como tu plan la próxima vez.</small><textarea id="lf-next" placeholder="El próximo ajuste a probar"></textarea></label></section>
+    <div class="row"><button class="primary" type="button" data-act="savelog">Guardar registro</button><button type="button" data-act="cancellog">Cancelar</button></div>
+  </form>`;
+}
+function bindForm(){
+  const f=$("#logform");if(!f)return;
+  const t=tasks.find(t=>t.id===formTask);
+  f.addEventListener("change",e=>{
+    if(e.target.name==="status"){f.dataset.status=e.target.value;
+      if(e.target.value==="skipped"&&!$("#lf-next").value)$("#lf-next").value="Hacer la versión de 2 minutos"+(t&&t.mini?": "+t.mini:"");}
+    if(e.target.name==="worked"){const m={si:"ac-e",parcial:"ac-a",no:"ac-d"};$("#"+m[e.target.value]).checked=true}
+  });
+  logSave=async()=>{
+    const v=n=>(f.querySelector(`[name="${n}"]:checked`)||{}).value;
+    const status=v("status"),skipped=status==="skipped";
+    const en={id:uid(),taskId:t.id,date:$("#lf-date").value||today(),ts:Date.now(),status,
+      improvement:$("#lf-imp").value.trim(),worked:skipped?"no":v("worked"),sat:skipped?0:+v("sat"),
+      minutes:skipped?0:(+$("#lf-min").value||0),muda:skipped?"":$("#lf-mu").value,notes:skipped?"":$("#lf-notes").value.trim(),
+      act:skipped?"ajustar":v("act"),next:$("#lf-next").value.trim(),
+      why:skipped?[1,2,3,4,5].map(i=>$("#lf-w"+i).value.trim()).filter(Boolean):[]};
+    entries.push(en);
+    const p=[put("entradas",en)];
+    if(en.act==="estandarizar"&&en.improvement&&!skipped&&en.worked!=="no"){t.standards=(t.standards||[]).concat([{text:en.improvement,date:en.date}]);p.push(put("tareas",t))}
+    view="hoy";formTask=null;render();window.scrollTo(0,0);
+    toast(skipped?"Anotado. Mañana, la versión de 2 minutos.":(en.worked==="si"?"Listo: +1% acumulado":en.worked==="parcial"?"Listo: +0,5% acumulado":"Anotado. Lo que aprendiste también suma."));
+    await Promise.all(p);
+  };
+}
+function lineChart(t){
+  const L=levels(t.id);
+  if(L.length<2)return `<p class="muted small">Con dos registros o más aparece la curva de este nivel.</p>`;
+  const W=640,H=230,m={l:46,r:16,t:14,b:30};
+  const maxv=Math.max(1.02,...L.map(p=>p.v));const minv=1;
+  const X=i=>m.l+(W-m.l-m.r)*(i/(L.length-1));
+  const Y=v=>H-m.b-(H-m.t-m.b)*((v-minv)/(maxv-minv));
+  const pts=L.map((p,i)=>[X(i),Y(p.v)]);
+  const path=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=path+` L${pts[pts.length-1][0].toFixed(1)} ${H-m.b} L${pts[0][0].toFixed(1)} ${H-m.b} Z`;
+  const ticks=[minv,(minv+maxv)/2,maxv];
+  const last=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Nivel acumulado de ${esc(t.name)}: de 1,000 a ${L[L.length-1].v.toFixed(3)} en ${L.length} registros">
+    ${ticks.map(v=>`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(3)}</text>`).join("")}
+    <path d="${area}" fill="var(--accent-soft)" stroke="none"/>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${m.l}" y="${H-8}">${esc(fmt(L[0].e.date))}</text><text x="${W-m.r}" y="${H-8}" text-anchor="end">${esc(fmt(L[L.length-1].e.date))}</text></svg>`;
+}
+function heat(){
+  const t0=today();const dow=(parse(t0).getDay()+6)%7;
+  const start=addDays(t0,-(11*7+dow));
+  const cnt={};entries.filter(e=>e.status!=="skipped").forEach(e=>cnt[e.date]=(cnt[e.date]||0)+1);
+  let c="";
+  for(let i=0;i<12*7;i++){const d=addDays(start,i);if(d>t0){c+=`<i style="visibility:hidden"></i>`;continue}const n=Math.min(2,cnt[d]||0);c+=`<i data-n="${n}" title="${esc(fmt(d))}: ${cnt[d]||0} registros"></i>`}
+  return `<div class="heat" role="img" aria-label="Actividad de las últimas 12 semanas">${c}</div><p class="muted small">Cada cuadro es un día; las filas van de lunes a domingo.</p>`;
+}
+function vProgreso(){
+  const ts=act();
+  if(!ts.length)return `<h2>Progreso</h2>`+emptyState();
+  if(!chartTask||!ts.find(t=>t.id===chartTask))chartTask=ts[0].id;
+  const t=ts.find(t=>t.id===chartTask),es=eOf(t.id);
+  const done=es.filter(e=>e.status!=="skipped"),full=es.filter(e=>e.status==="done").length;
+  const improv=done.filter(e=>e.worked==="si"||e.worked==="parcial").length;
+  const mu={};entries.forEach(e=>{if(e.muda)mu[e.muda]=(mu[e.muda]||0)+1});
+  const muk=Object.keys(mu).sort((a,b)=>mu[b]-mu[a]);const mx=muk.length?mu[muk[0]]:1;
+  const avgSat=done.filter(e=>e.sat).length?(done.filter(e=>e.sat).reduce((s,e)=>s+e.sat,0)/done.filter(e=>e.sat).length).toFixed(1):"–";
+  const hist=es.slice().reverse().slice(0,8);
+  return `<h2>Progreso</h2>
+  <label class="f" for="pt">Tarea<select id="pt">${ts.map(x=>`<option value="${x.id}" ${x.id===t.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+  <div class="grid2"><div class="stat"><span class="label">Nivel</span><b>${x(level(t.id))}</b></div><div class="stat"><span class="label">Racha</span><b>${streak(t.id)}</b></div><div class="stat"><span class="label">Mejoras que funcionaron</span><b>${improv}</b></div><div class="stat"><span class="label">Satisfacción media</span><b>${avgSat}</b></div></div>
+  <div class="card"><h3>Curva de mejora</h3>${lineChart(t)}<p class="muted small">Sube 1% por cada vez que el cambio funcionó y 0,5% si funcionó en parte. Lo que no funciona no resta: queda como aprendizaje. ${es.length?`Completas: ${full} de ${es.length} registros.`:""}</p></div>
+  ${timeCard(t)}<div class="card"><h3>Constancia, todas las tareas</h3>${heat()}</div>
+  <div class="card"><h3>Desperdicios más frecuentes</h3>${muk.length?muk.map(k=>`<div class="bar"><span>${esc(mudaName(k))}</span><span class="t" style="width:${Math.round(100*mu[k]/mx)}%"></span><b>${mu[k]}</b></div>`).join(""):`<p class="muted small">Aún no registraste ninguno. Al terminar una tarea, pregúntate dónde perdiste tiempo o energía.</p>`}</div>
+  <div class="card"><h3>Últimos registros</h3><div class="hist">${hist.length?hist.map(e=>`<div class="item"><div><b>${esc(fmt(e.date))}</b> · ${e.status==="skipped"?"No la hice":e.status==="mini"?"Versión de 2 min":"Completa"}${e.minutes?` · ${fm(e.minutes)} min`:""}${e.worked&&e.status!=="skipped"?` · ${e.worked==="si"?"funcionó":e.worked==="parcial"?"en parte":"no funcionó"}`:""}
+    ${e.improvement?`<div class="small muted">1%: ${esc(e.improvement)}</div>`:""}${e.notes?`<div class="small muted">Observé: ${esc(e.notes)}</div>`:""}${e.why&&e.why.length?`<div class="small muted">Porqués: ${e.why.map(esc).join(" → ")}</div>`:""}</div>
+    <button class="ghost danger" data-act="delentry" data-id="${e.id}">${confirmKey==="e"+e.id?"Confirmar":"Borrar"}</button></div>`).join(""):`<p class="muted small">Todavía no hay registros de esta tarea.</p>`}</div></div>`;
+}
+function vMetodo(){
+  const c=(t,b)=>`<div class="card"><h3>${t}</h3>${b}</div>`;
+  return `<h2>El método</h2><p class="muted">Este diario junta dos ideas: mejorar un poco cada vez (Hábitos atómicos) y revisar cómo trabajas en el lugar donde ocurre (Gemba Kaizen).</p>
+  ${c("El 1%","<p>Mejorar 1% cada día durante un año da 1,01<sup>365</sup> ≈ 37 veces. Empeorar 1% al día lleva casi a cero. Los hábitos son el interés compuesto de la superación personal. Aquí el nivel de cada tarea sube cada vez que el cambio que probaste funcionó.</p>")}
+  ${c("Plan, Hacer, Verificar, Actuar","<p>Cada registro es un ciclo PDCA. <b>Plan:</b> el 1% que probarás. <b>Hacer:</b> la tarea. <b>Verificar:</b> si el cambio funcionó. <b>Actuar:</b> lo conviertes en estándar, lo ajustas o lo descartas. Tu “siguiente 1%” es el plan de la próxima vez, así que el ciclo no se corta.</p><p class='muted small'>Kaizen distingue mantener (SDCA: estandarizar y sostener lo que ya funciona) de mejorar (PDCA). Por eso lo que funciona pasa a tu “estándar actual”.</p>")}
+  ${c("Las cuatro leyes en tu tarea","<ul class='plain'><li><b>Hazlo obvio:</b> la señal “Después de… haré… en…”.</li><li><b>Hazlo atractivo:</b> la identidad “Soy alguien que…”.</li><li><b>Hazlo sencillo:</b> la versión de 2 minutos y quitar pasos.</li><li><b>Hazlo satisfactorio:</b> la recompensa y marcar el registro.</li></ul>")}
+  ${c("Nunca falles dos veces","<p>Fallar un día pasa. Lo que importa es no encadenar dos. Si registras “No la hice”, el diario te recuerda hacer la versión de 2 minutos la próxima vez y te pide los cinco porqués para encontrar la causa.</p>")}
+  ${c("Muda: los siete desperdicios","<p>Muda es toda actividad que no agrega valor. Kaizen los clasifica en siete tipos: sobreproducción, inventario, defectos, movimiento, procesamiento, espera y transporte. Aquí los usas para encontrar el siguiente 1%: casi siempre es quitar algo, no agregar.</p>")}
+  ${c("Mura y muri","<p>Además de la muda, Kaizen señala la <b>mura</b> (variación: días muy desparejos) y la <b>muri</b> (sobrecarga: exigirte más de lo razonable). Si una tarea te sale bien un día y no el otro, o te agota, ahí hay un 1% por encontrar.</p>")}
+  ${c("Ir al gemba","<p>Gemba significa el lugar real donde ocurre el trabajo, donde están los hechos. Registra lo que realmente pasó, no lo que debió pasar. Taiichi Ohno dibujaba un círculo en el suelo y hacía que un supervisor se quedara dentro observando hasta ver la realidad. Antes de juzgar tu tarea, mírala como ocurre, con calma.</p><p class='muted small'>Las cinco reglas de oro del gemba, aplicadas a una tarea que falló:</p><ul class='plain'><li>Ve primero al lugar: mira dónde y cómo ocurrió.</li><li>Examina lo concreto: la agenda, el material, el espacio.</li><li>Aplica una solución temporal en el momento.</li><li>Busca la causa raíz con los cinco porqués.</li><li>Crea un estándar nuevo para que no se repita.</li></ul>")}
+  ${c("Los cinco porqués","<p>Para llegar a la causa raíz, pregunta ¿por qué? una y otra vez; con frecuencia bastan cinco veces. El libro cuenta el caso de un trabajador que echaba serrín en el suelo porque estaba resbaladizo. Preguntando porqué tras porqué se llegó a un manguito de caucho gastado, y cambiarlo acabó con la fuga para siempre. Echar serrín solo tapaba el síntoma.</p><p class='muted small'>Úsalo cuando registres «No la hice»: en vez de culparte, busca qué en el proceso falló.</p>")}
+  ${c("Hazlo ahora","<p>Uno de los axiomas del gemba kaizen es: ¡Hazlo ahora, hazlo enseguida! Según el libro, casi el 90 % de los problemas del gemba se pueden resolver en el acto, sin un estudio detallado. Por eso tu 1% debe ser un cambio pequeño que puedas probar hoy.</p>")}
+  ${c("Los estándares","<p>Donde no hay estándar no puede haber mejora. Un estándar es la forma más fácil, segura y mejor que conoces hoy para hacer la tarea. Por eso tu “estándar actual” es el punto de partida de cada registro.</p><p>Pero los estándares no son piedra grabada: una vez establecidos, toca mejorarlos. Ese es el ciclo que usas en el diario.</p>")}
+  ${c("Las 5S de tu espacio de trabajo","<ul class='plain'><li><b>Seiri (clasificar):</b> quita lo que no necesitas.</li><li><b>Seiton (ordenar):</b> un lugar fijo para cada cosa, para no perder tiempo buscando.</li><li><b>Seiso (limpiar):</b> limpiar también revela fallas a tiempo.</li><li><b>Seiketsu (sistematizar):</b> mantener el orden con reglas claras.</li><li><b>Shitsuke (disciplina):</b> volverlo un hábito diario.</li></ul><p class='muted small'>Muchos “1%” de tus tareas saldrán de aquí, sobre todo de ordenar y quitar lo innecesario.</p>")}
+  ${c("Reglas del kaizen que sirven aquí","<ul class='plain'><li>No busques la perfección: hazlo ya, aunque solo alcances el 50 % del objetivo.</li><li>Corrige los errores de inmediato.</li><li>No gastes dinero para mejorar: los mejores cambios cuestan poco o nada.</li><li>Busca la sabiduría de 10 personas antes que el conocimiento de una sola: pide la opinión de un colega.</li><li>Recuerda que las oportunidades de kaizen son infinitas.</li><li>Pregunta ¿por qué? hasta llegar a la causa.</li><li>Evita las excusas y cuestiona cómo lo haces hoy.</li><li>Un kaizen sin meta es un viaje sin destino: decide hacia dónde apuntan tus 1%.</li></ul>")}`;
+}
+
+/* ---------- ejemplo ---------- */
+async function loadExample(){
+  if(tasks.some(t=>t.example)){toast("El ejemplo ya está cargado");return}
+  const t={id:uid(),example:true,createdAt:Date.now(),archived:false,standards:[],
+    name:"Lavar los platos (ejemplo)",identity:"mantiene su cocina lista para el día siguiente",
+    stack:"terminar de cenar",cue:"llevar los platos al fregadero y lavarlos antes de sentarme a descansar",
+    mini:"lavar un solo vaso",reward:"ver la cocina limpia y tomarme un té"};
+  const R=[
+    {status:"done",minutes:25,improvement:"Línea base: lavar como siempre y cronometrar",worked:"parcial",sat:3,muda:"movimiento",notes:"Tardé 25 minutos; perdí tiempo buscando la esponja y el jabón.",act:"ajustar",next:"Dejar la esponja y el jabón junto al fregadero antes de cenar",why:[]},
+    {status:"done",minutes:20,improvement:"Dejar la esponja y el jabón junto al fregadero antes de cenar",worked:"si",sat:4,muda:"movimiento",notes:"Ya no busqué nada. Bajó a 20 minutos.",act:"estandarizar",next:"Remojar las ollas con agua y jabón mientras ceno",why:[]},
+    {status:"done",minutes:15,improvement:"Remojar las ollas con agua y jabón mientras ceno",worked:"si",sat:4,muda:"espera",notes:"Las ollas salieron casi solas. Esperé a que se calentara el agua.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
+    {status:"skipped",minutes:0,improvement:"Poner a calentar el agua al empezar a cenar",worked:"no",sat:0,muda:"",notes:"",act:"ajustar",next:"Hacer la versión de 2 minutos: lavar un vaso",why:["Estaba muy cansado y me fui a dormir","Cené tarde","Salí tarde del trabajo","No dejé un plan para los días largos","Mi tarea no tenía una versión mínima para esos días"]},
+    {status:"mini",minutes:10,improvement:"Empezar siempre con un vaso para romper la inercia",worked:"si",sat:4,muda:"",notes:"Empecé con un vaso y terminé lavando todo en 10 minutos.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
+    {status:"done",minutes:12,improvement:"Poner a calentar el agua al empezar a cenar",worked:"parcial",sat:4,muda:"procesamiento",notes:"Salió bien, pero enjuagué los platos dos veces sin necesidad.",act:"ajustar",next:"Enjuagar una sola vez, con el grifo medio abierto",why:[]}
+  ];
+  const es=R.map((r,i)=>Object.assign({id:uid(),taskId:t.id,date:addDays(today(),-(6-i)),ts:Date.now()+i},r));
+  es.forEach(en=>{if(en.act==="estandarizar"&&en.status!=="skipped"&&en.worked!=="no")t.standards.push({text:en.improvement,date:en.date})});
+  tasks.push(t);entries.push(...es);chartTask=t.id;go("hoy");render();window.scrollTo(0,0);
+  toast("Ejemplo cargado. Puedes borrarlo en Mis tareas.");
+  await put("tareas",t);for(const en of es)await put("entradas",en);
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]");if(!b||b.tagName==="INPUT")return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if(a==="example"){await loadExample()}
+  else if(a==="savetask"){try{await saveTask()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
+  else if(a==="savelog"){try{if(logSave)await logSave()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
+  else if(a==="log"){formTask=id;view="form";confirmKey=null;render();window.scrollTo(0,0)}
+  else if(a==="cancellog"){view="hoy";formTask=null;render()}
+  else if(a==="newtask"){go("tareas");editTask=true;render();window.scrollTo(0,0)}
+  else if(a==="canceltask"){editTask=null;render()}
+  else if(a==="edit"){editTask=id;render();window.scrollTo(0,0)}
+  else if(a==="archive"){const t=tasks.find(t=>t.id===id);t.archived=!t.archived;render();await put("tareas",t)}
+  else if(a==="deltask"){
+    if(confirmKey!=="t"+id){confirmKey="t"+id;render();return}
+    confirmKey=null;const es=entries.filter(e=>e.taskId===id);
+    tasks=tasks.filter(t=>t.id!==id);entries=entries.filter(e=>e.taskId!==id);render();
+    await del("tareas",id);for(const en of es)await del("entradas",en.id);toast("Tarea borrada")}
+  else if(a==="delentry"){
+    if(confirmKey!=="e"+id){confirmKey="e"+id;render();return}
+    confirmKey=null;entries=entries.filter(e=>e.id!==id);render();await del("entradas",id)}
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="pt"){chartTask=e.target.value;render()}
+  if(e.target.dataset&&e.target.dataset.act==="arch0"){showArchived=false;render()}
+  if(e.target.dataset&&e.target.dataset.act==="arch1"){showArchived=true;render()}
+});
+async function saveTask(){
+  const form=$("#taskform");if(!form)return;
+  const g=i=>$("#"+i).value.trim();
+  const name=g("tf-name");
+  if(!name){$("#tf-name").focus();toast("Escribe el nombre de la tarea");return}
+  const id=form.dataset.id;
+  let t=id?tasks.find(t=>t.id===id):null;
+  if(!t){t={id:uid(),createdAt:Date.now(),standards:[],archived:false};tasks.push(t)}
+  Object.assign(t,{name,identity:g("tf-identity"),stack:g("tf-stack"),cue:g("tf-cue"),mini:g("tf-mini"),reward:g("tf-reward")});
+  editTask=null;render();toast("Tarea guardada");await put("tareas",t);
+}
+document.addEventListener("submit",e=>{e.preventDefault()});
+const VIEWS=["hoy","tareas","progreso","metodo"];
+function go(v){
+  view=v;formTask=null;editTask=null;confirmKey=null;
+  try{history.replaceState(null,"","#"+v)}catch(e){}
+}
+document.getElementById("tabs").addEventListener("click",e=>{
+  const a=e.target.closest("a[data-v]");if(!a)return;
+  e.preventDefault();go(a.dataset.v);render();window.scrollTo(0,0);
+});
+window.addEventListener("hashchange",()=>{
+  const h=(location.hash||"").slice(1);
+  if(VIEWS.includes(h)&&h!==view){go(h);render()}
+});
+view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))?(location.hash).slice(1):"hoy";
+boot();
+})();
+</script>
+
+</body></html>
