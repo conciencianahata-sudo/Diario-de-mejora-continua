@@ -1,9 +1,6 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Diario de mejora continua</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -96,19 +93,22 @@ form[data-status="skipped"] .only-did{display:none}
 .hist .item>div{min-width:0;overflow-wrap:anywhere}
 .hist .item>div.acts{flex:none;display:flex;overflow-wrap:normal}
 .hist button{white-space:nowrap}
+.reg{display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.reg dl{margin:0;display:flex;flex-direction:column;gap:9px}
+.reg dt{font-size:12px;font-weight:600;color:var(--muted)}
+.reg dd{margin:1px 0 0;overflow-wrap:anywhere}
 ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:90vw}
 svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub" id="syncnote">Cargando…</span>
+      <span class="sub"><b id="ver">Versión 17</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -194,6 +194,26 @@ function timeStats(id){
   return {n:m.length,first,last,best:Math.min(...m),avg:m.reduce((s,v)=>s+v,0)/m.length,pct:m.length>1?Math.round(100*(last-first)/first):0,list:a};
 }
 const sgn=p=>(p>0?"+":p<0?"−":"")+Math.abs(p)+" %";
+const ACT_TXT={estandarizar:"Queda como mi nueva forma",ajustar:"Lo ajusto y lo pruebo otra vez",descartar:"Lo descarto",base:"Línea base"};
+const ST_TXT={done:"La hice completa",mini:"Solo la versión de 2 min",skipped:"No la hice"};
+const WK_TXT={si:"Sí",parcial:"En parte",no:"No"};
+function regBlock(id){
+  const es=eOf(id),td=es.filter(e=>e.date===today()),en=(td.length?td:es).slice(-1)[0];
+  if(!en)return `<div class="reg"><span class="label">Registro</span><p class="muted small">Todavía no hay registros. Toca Registrar para empezar.</p></div>`;
+  const sk=en.status==="skipped";
+  const row=(l,v)=>`<div><dt>${l}</dt><dd>${v?esc(v):'<span class="muted">—</span>'}</dd></div>`;
+  return `<div class="reg"><span class="label">${td.length?"Registro de hoy":"Último registro"}</span><dl>`
+    +row("Fecha",fmt(en.date))
+    +row("¿Qué cambio pequeño voy a probar?",en.improvement)
+    +row("Hacer: ¿Qué pasó?",ST_TXT[en.status])
+    +row("Tiempo que tomó",en.minutes?dur(en.minutes):"")
+    +row("Verificar: ¿Funcionó el cambio?",sk?"":WK_TXT[en.worked])
+    +row("¿Qué tan satisfecho quedé?",en.sat?en.sat+" de 5":"")
+    +row("Lo que observé",sk?(en.why&&en.why.length?"Porqués: "+en.why.join(" → "):""):en.notes)
+    +row("Actuar: ¿Qué hago con esto?",sk?"":ACT_TXT[en.act])
+    +row("Mi siguiente 1%",en.next)
+    +`</dl></div>`;
+}
 function timeLine(id){
   const s=timeStats(id);if(!s)return "";
   return `<div class="small"><span class="label">Tiempo</span><br>${s.n>1?`Primera vez ${dur(s.first)} → última ${dur(s.last)} <span class="pill ${s.pct<=0?"good":"warn"}">${sgn(s.pct)}</span>`:`Última vez: ${dur(s.last)}. Registra otra vez para comparar.`}</div>`;
@@ -265,7 +285,7 @@ function vHoy(){
       ${t.stack||t.cue?`<p class="small"><b>Señal:</b> ${t.stack?`Después de ${esc(t.stack)}`:""}${t.stack&&t.cue?", ":""}${esc(t.cue||"")}</p>`:""}
       ${msg}
       ${timeLine(t.id)}
-      <div class="small"><span class="label">Mi 1% de hoy</span><br>${last&&last.next?esc(last.next):`<span class="muted">Todavía no definido. Lo escribes al registrar.</span>`}</div>
+      ${regBlock(t.id)}
       ${t.standards&&t.standards.length?`<div class="small"><span class="label">Mi estándar actual</span><ul class="plain">${t.standards.slice(-3).map(s=>`<li>${esc(s.text)}</li>`).join("")}</ul></div>`:""}
       <div class="row between"><div class="row"><span class="pill ${S?"good":""}">${S} ${S===1?"día":"días"} seguidos</span>${doneToday?`<span class="pill good">Registrada hoy</span>`:`<span class="pill warn">Pendiente</span>`}</div>
       <div class="row"><button data-act="edittoday" data-id="${t.id}">Editar tarea</button><button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div></div>
@@ -496,11 +516,11 @@ async function saveTask(){
   const g=i=>$("#"+i).value.trim();
   const name=g("tf-name");
   if(!name){$("#tf-name").focus();toast("Escribe el nombre de la tarea");return}
-  const id=form.dataset.id;
+  const id=form.dataset.id,isNew=!id;
   let t=id?tasks.find(t=>t.id===id):null;
   if(!t){t={id:uid(),createdAt:Date.now(),standards:[],archived:false};tasks.push(t)}
   Object.assign(t,{name,identity:g("tf-identity"),stack:g("tf-stack"),cue:g("tf-cue"),mini:g("tf-mini"),reward:g("tf-reward")});
-  editTask=null;if(editFrom==="hoy")go("hoy");editFrom=null;render();toast("Tarea guardada");await put("tareas",t);
+  editTask=null;if(editFrom==="hoy"||isNew)go("hoy");editFrom=null;render();window.scrollTo(0,0);toast(isNew?"Tarea guardada. Ya puedes registrarla desde Hoy.":"Tarea guardada");await put("tareas",t);
 }
 document.addEventListener("submit",e=>{e.preventDefault()});
 const VIEWS=["hoy","tareas","progreso","metodo"];
@@ -520,5 +540,5 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-</body>
-</html>
+
+</body></html>
