@@ -1,6 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Diario de mejora continua</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -103,12 +106,13 @@ svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub"><b id="ver">Versión 17</b> · <span id="syncnote">Cargando…</span></span>
+      <span class="sub"><b id="ver">Versión 18</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -140,7 +144,7 @@ const FACTOR={si:1.01,parcial:1.005,no:1};
 
 /* ---------- estado ---------- */
 let tasks=[],entries=[],view="hoy",formTask=null,showArchived=false,editTask=null,chartTask=null,confirmKey=null,calMonth=null;
-let db=null,base=null,loaded=false,logSave=null,editingEntry=null,editFrom=null,entryFrom=null;
+let db=null,base=null,loaded=false,logSave=null,editingEntry=null,editFrom=null,entryFrom=null,backupMode=null,backupTxt="";
 
 /* ---------- persistencia: db privada del usuario + copia local ---------- */
 const LS="diario1pct.v1";
@@ -168,9 +172,9 @@ async function boot(){
     note("Guardado en tu cuenta");
     base.collection("tareas").onSnapshot(s=>{tasks=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));loaded=true;clearTimeout(timer);lsWrite();soft()},()=>note("Sin conexión con tu cuenta"));
     base.collection("entradas").onSnapshot(s=>{entries=s.docs.map(d=>JSON.parse(JSON.stringify(d.data())));lsWrite();soft()},()=>{});
-  }catch(e){base=null;note("Guardado solo en este navegador");}
+  }catch(e){clearTimeout(timer);base=null;note("Guardado solo en este navegador");}
 }
-function soft(){if(view!=="form"&&!editTask)render()}
+function soft(){if(view!=="form"&&!editTask&&!backupMode)render()}
 
 /* ---------- cálculos ---------- */
 const eOf=id=>entries.filter(e=>e.taskId===id).sort((a,b)=>a.date.localeCompare(b.date)||(a.ts||0)-(b.ts||0));
@@ -265,7 +269,7 @@ function emptyState(){
       <b>Escribir la nota de cada sesión</b>
       <span class="muted small">Soy alguien que deja registro claro de su trabajo. · Después de despedir al paciente, abro la plantilla en mi escritorio. · Versión de 2 minutos: escribir solo la primera línea.</span>
       <span class="small">1% de hoy: <i>dejar la plantilla abierta desde la mañana para no buscarla.</i> → Muda detectada: movimiento.</span></div>
-    <div class="row"><button class="primary" data-act="newtask">Crear mi primera tarea</button><button data-act="example">Cargar ejemplo: lavar los platos</button></div></div>`;
+    <div class="row"><button class="primary" data-act="newtask">Crear mi primera tarea</button><button data-act="example">Cargar ejemplo: lavar los platos</button><button data-act="gobackup">Importar mis datos</button></div></div>`;
 }
 function vHoy(){
   const ts=act();
@@ -310,14 +314,14 @@ function vTareas(){
   if(editTask!==null)return taskForm(editTask===true?null:tasks.find(t=>t.id===editTask));
   const list=tasks.filter(t=>!!t.archived===showArchived).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   let h=`<div class="row between"><h2>Mis tareas</h2><div class="row">${tasks.some(t=>t.example)?"":'<button data-act="example">Cargar ejemplo</button>'}<button class="primary" data-act="newtask">Nueva tarea</button></div></div>`;
-  if(!tasks.length)return h+emptyState();
+  if(!tasks.length)return h+emptyState()+backupCard();
   h+=`<div class="seg" role="group"><input type="radio" name="arch" id="a0" ${!showArchived?"checked":""} data-act="arch0"><label for="a0">Activas</label><input type="radio" name="arch" id="a1" ${showArchived?"checked":""} data-act="arch1"><label for="a1">Archivadas</label></div>`;
   if(!list.length)h+=`<p class="muted">No hay tareas en esta lista.</p>`;
   h+=list.map(t=>`<div class="card"><div class="row between"><h3>${esc(t.name)}</h3><span class="muted small">${eOf(t.id).length} registros · ${x(level(t.id))}</span></div>
     ${t.mini?`<p class="small"><b>2 minutos:</b> ${esc(t.mini)}</p>`:""}${t.reward?`<p class="small"><b>Recompensa:</b> ${esc(t.reward)}</p>`:""}
     <div class="row"><button data-act="edit" data-id="${t.id}">Editar</button><button data-act="archive" data-id="${t.id}">${t.archived?"Restaurar":"Archivar"}</button>
     <button class="ghost danger" data-act="deltask" data-id="${t.id}">${confirmKey==="t"+t.id?"Confirmar: borrar tarea y registros":"Borrar"}</button></div></div>`).join("");
-  return h;
+  return h+backupCard();
 }
 function vForm(){
   const t=tasks.find(t=>t.id===formTask);if(!t)return "";
@@ -478,11 +482,56 @@ async function loadExample(){
   await put("tareas",t);for(const en of es)await put("entradas",en);
 }
 
+/* ---------- copia de seguridad ---------- */
+function backupCard(){
+  const st="font:12px/1.4 ui-monospace,Consolas,monospace;min-height:150px";
+  const nT=tasks.length+(tasks.length===1?" tarea":" tareas"),nE=entries.length+(entries.length===1?" registro":" registros");
+  let body="";
+  if(backupMode==="export")body=`<label class="f" for="bk-out">Tus datos (${nT} y ${nE})<small>Copia todo este texto y pégalo en Importar datos del otro lugar.</small><textarea id="bk-out" readonly style="${st}">${esc(backupTxt)}</textarea></label><div class="row"><button class="primary" data-act="copyexport">Copiar texto</button><button data-act="closebackup">Cerrar</button></div>`;
+  else if(backupMode==="import")body=`<label class="f" for="bk-in">Pega aquí los datos exportados<small>Se suman a lo que ya tienes. Si una tarea o un registro ya existe, se actualiza. No se borra nada.</small><textarea id="bk-in" style="${st}"></textarea></label><label class="f" for="bk-file">O elige el archivo guardado<input type="file" id="bk-file" accept=".json,.txt,text/plain,application/json"></label><div class="row"><button class="primary" data-act="doimport">Importar</button><button data-act="closebackup">Cancelar</button></div>`;
+  return `<div class="card" id="backup"><h3>Copia de seguridad</h3><p class="muted small">Lleva tus tareas y registros de un lugar a otro, por ejemplo de la app en Claude al archivo descargado. La app en Claude y cada archivo descargado guardan sus datos por separado, por eso no se ven entre sí hasta que importas.</p><div class="row"><button data-act="exportdata">Exportar datos</button><button data-act="showimport">Importar datos</button></div>${body}</div>`;
+}
+function copyText(txt){
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Datos copiados. Pégalos en Importar datos."),()=>toast("Selecciona el texto y cópialo"))}catch(e){toast("Selecciona el texto y cópialo")}
+}
+function doExport(){
+  backupTxt=JSON.stringify({app:"diario-mejora-continua",formato:1,exportado:new Date().toISOString(),tasks,entries});
+  backupMode="export";render();
+  const ta=$("#bk-out");if(ta){ta.scrollIntoView({block:"center"});ta.focus();ta.select()}
+  copyText(backupTxt);
+}
+function copyExport(){const ta=$("#bk-out");if(ta){ta.focus();ta.select()}copyText(backupTxt)}
+const OKID=/^[A-Za-z0-9_\-.~:@+]{1,100}$/;
+const idOk=v=>typeof v==="string"&&OKID.test(v)&&v!=="."&&v!=="..";
+async function doImport(){
+  const ta=$("#bk-in"),raw=ta?ta.value.trim():"";
+  if(!raw){toast("Pega primero los datos exportados");return}
+  let j;try{j=JSON.parse(raw)}catch(e){toast("Ese texto no es v\u00e1lido. Copia todo el contenido exportado.");return}
+  if(!j||!Array.isArray(j.tasks)||!Array.isArray(j.entries)){toast("Estos datos no son de este diario");return}
+  const clean=o=>JSON.parse(JSON.stringify(o));
+  const cT=j.tasks.filter(t=>t&&idOk(t.id)&&typeof t.name==="string"&&t.name.trim()).map(clean);
+  const ids=new Set(tasks.map(t=>t.id));cT.forEach(t=>ids.add(t.id));
+  const cE=j.entries.filter(e=>e&&idOk(e.id)&&typeof e.taskId==="string"&&ids.has(e.taskId)&&typeof e.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(e.date)).map(clean);
+  cT.forEach(c=>{const i=tasks.findIndex(x=>x.id===c.id);if(i>=0)tasks[i]=c;else tasks.push(c)});
+  cE.forEach(c=>{const i=entries.findIndex(x=>x.id===c.id);if(i>=0)entries[i]=c;else entries.push(c)});
+  backupMode=null;view="hoy";go("hoy");render();window.scrollTo(0,0);
+  toast("Importado: "+cT.length+(cT.length===1?" tarea":" tareas")+" y "+cE.length+(cE.length===1?" registro":" registros"));
+  lsWrite();
+  for(const c of cT)await put("tareas",c);
+  for(const c of cE)await put("entradas",c);
+}
+
 /* ---------- eventos ---------- */
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]");if(!b||b.tagName==="INPUT")return;
   const a=b.dataset.act,id=b.dataset.id;
   if(a==="example"){await loadExample()}
+  else if(a==="exportdata"){doExport()}
+  else if(a==="copyexport"){copyExport()}
+  else if(a==="showimport"){backupMode=backupMode==="import"?null:"import";render();const bi=$("#bk-in");if(bi){bi.scrollIntoView({block:"center"});bi.focus()}}
+  else if(a==="closebackup"){backupMode=null;render()}
+  else if(a==="doimport"){try{await doImport()}catch(err){toast("No se pudo importar: "+((err&&err.message)||err))}}
+  else if(a==="gobackup"){go("tareas");backupMode="import";render();window.scrollTo(0,0);const bi=$("#bk-in");if(bi){bi.scrollIntoView({block:"center"});bi.focus()}}
   else if(a==="calprev"||a==="calnext"){let [y,m]=(calMonth||today().slice(0,7)).split("-").map(Number);m+=a==="calnext"?1:-1;if(m<1){m=12;y--}if(m>12){m=1;y++}calMonth=y+"-"+pad(m);render()}
   else if(a==="savetask"){try{await saveTask()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
   else if(a==="savelog"){try{if(logSave)await logSave()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
@@ -507,6 +556,7 @@ document.addEventListener("click",async e=>{
     confirmKey=null;entries=entries.filter(e=>e.id!==id);render();await del("entradas",id)}
 });
 document.addEventListener("change",e=>{
+  if(e.target.id==="bk-file"){const f=e.target.files&&e.target.files[0];if(f){const r=new FileReader();r.onload=()=>{const ta=$("#bk-in");if(ta)ta.value=String(r.result)};r.readAsText(f)}}
   if(e.target.id==="pt"){chartTask=e.target.value;render()}
   if(e.target.dataset&&e.target.dataset.act==="arch0"){showArchived=false;render()}
   if(e.target.dataset&&e.target.dataset.act==="arch1"){showArchived=true;render()}
@@ -525,7 +575,7 @@ async function saveTask(){
 document.addEventListener("submit",e=>{e.preventDefault()});
 const VIEWS=["hoy","tareas","progreso","metodo"];
 function go(v){
-  view=v;formTask=null;editTask=null;confirmKey=null;editFrom=null;editingEntry=null;entryFrom=null;
+  view=v;formTask=null;editTask=null;confirmKey=null;editFrom=null;editingEntry=null;entryFrom=null;backupMode=null;
   try{history.replaceState(null,"","#"+v)}catch(e){}
 }
 document.getElementById("tabs").addEventListener("click",e=>{
@@ -540,5 +590,5 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-
-</body></html>
+</body>
+</html>
