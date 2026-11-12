@@ -91,6 +91,7 @@ form[data-status="skipped"] .only-did{display:none}
 .cal-d.fut{opacity:.45}
 .cal-d.today{outline:2px solid var(--ink);outline-offset:1px}
 .mes{font:700 17px var(--display)}
+button.add{width:44px;height:44px;padding:0;border-radius:50%;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font:500 28px/1 var(--text);display:flex;align-items:center;justify-content:center;flex:none}
 .hist{display:flex;flex-direction:column}
 .hist .item{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
 .hist .item>div{min-width:0;overflow-wrap:anywhere}
@@ -112,7 +113,7 @@ svg text{fill:var(--muted);font:12px var(--text)}
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub"><b id="ver">Versión 18</b> · <span id="syncnote">Cargando…</span></span>
+      <span class="sub"><b id="ver">Versión 19</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -276,7 +277,7 @@ function vHoy(){
   const t0=today();
   const total=entries.filter(e=>e.status!=="skipped").length;
   const week=entries.filter(e=>e.date>addDays(t0,-7)&&e.status!=="skipped").length;
-  let h=`<div class="row between"><div><span class="label">${esc(fmt(t0))}</span><h2>Hoy</h2></div></div>`;
+  let h=`<div class="row between"><div><span class="label">${esc(fmt(t0))}</span><h2>Hoy</h2></div><button class="add" data-act="newtask" aria-label="Nueva tarea" title="Nueva tarea">+</button></div>`;
   if(!ts.length)return h+emptyState();
   h+=`<div class="grid2"><div class="stat"><span class="label">Registros</span><b>${total}</b></div><div class="stat"><span class="label">Últimos 7 días</span><b>${week}</b></div></div>`;
   h+=ts.map(t=>{
