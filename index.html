@@ -1,9 +1,6 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Diario de mejora continua</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -83,6 +80,14 @@ form[data-status="skipped"] .only-did{display:none}
 .heat i[data-n="2"]{background:var(--accent)}
 .bar{display:grid;grid-template-columns:minmax(90px,150px) 1fr 24px;gap:10px;align-items:center;font-size:13px}
 .bar span.t{height:10px;border-radius:5px;background:var(--accent)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-h{font-size:11px;font-weight:600;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.cal-d{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:14px;font-weight:500;border:1px solid var(--line);color:var(--muted);min-width:0}
+.cal-d[data-n="1"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+.cal-d[data-n="2"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.cal-d.fut{opacity:.45}
+.cal-d.today{outline:2px solid var(--ink);outline-offset:1px}
+.mes{font:700 17px var(--display)}
 .hist{display:flex;flex-direction:column}
 .hist .item{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
 .hist .item>div{min-width:0;overflow-wrap:anywhere}
@@ -94,8 +99,7 @@ svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -131,7 +135,7 @@ const mudaName=k=>(MUDAS.find(m=>m[0]===k)||["",""])[1].split(" (")[0];
 const FACTOR={si:1.01,parcial:1.005,no:1};
 
 /* ---------- estado ---------- */
-let tasks=[],entries=[],view="hoy",formTask=null,showArchived=false,editTask=null,chartTask=null,confirmKey=null;
+let tasks=[],entries=[],view="hoy",formTask=null,showArchived=false,editTask=null,chartTask=null,confirmKey=null,calMonth=null;
 let db=null,base=null,loaded=false,logSave=null,editingEntry=null,editFrom=null,entryFrom=null;
 
 /* ---------- persistencia: db privada del usuario + copia local ---------- */
@@ -260,7 +264,7 @@ function vHoy(){
       <div class="small"><span class="label">Mi 1% de hoy</span><br>${last&&last.next?esc(last.next):`<span class="muted">Todavía no definido. Lo escribes al registrar.</span>`}</div>
       ${t.standards&&t.standards.length?`<div class="small"><span class="label">Mi estándar actual</span><ul class="plain">${t.standards.slice(-3).map(s=>`<li>${esc(s.text)}</li>`).join("")}</ul></div>`:""}
       <div class="row between"><div class="row"><span class="pill ${S?"good":""}">${S} ${S===1?"día":"días"} seguidos</span>${doneToday?`<span class="pill good">Registrada hoy</span>`:`<span class="pill warn">Pendiente</span>`}</div>
-      <div class="row"><button data-act="edit" data-from="hoy" data-id="${t.id}">Editar tarea</button>${last?`<button data-act="editentry" data-from="hoy" data-id="${last.id}">Editar último registro</button>`:""}<button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div></div>
+      <div class="row"><button data-act="edittoday" data-id="${t.id}">Editar tarea</button><button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div></div>
     </article>`}).join("");
   return h;
 }
@@ -372,13 +376,23 @@ function lineChart(t){
     <circle cx="${last[0]}" cy="${last[1]}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
     <text x="${m.l}" y="${H-8}">${esc(fmt(L[0].e.date))}</text><text x="${W-m.r}" y="${H-8}" text-anchor="end">${esc(fmt(L[L.length-1].e.date))}</text></svg>`;
 }
+const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 function heat(){
-  const t0=today();const dow=(parse(t0).getDay()+6)%7;
-  const start=addDays(t0,-(11*7+dow));
+  const t0=today(),cur=t0.slice(0,7);
+  const cm=calMonth||cur;
+  const [Y,M]=cm.split("-").map(Number);
+  const days=new Date(Y,M,0).getDate(),lead=(new Date(Y,M-1,1).getDay()+6)%7;
   const cnt={};entries.filter(e=>e.status!=="skipped").forEach(e=>cnt[e.date]=(cnt[e.date]||0)+1);
-  let c="";
-  for(let i=0;i<12*7;i++){const d=addDays(start,i);if(d>t0){c+=`<i style="visibility:hidden"></i>`;continue}const n=Math.min(2,cnt[d]||0);c+=`<i data-n="${n}" title="${esc(fmt(d))}: ${cnt[d]||0} registros"></i>`}
-  return `<div class="heat" role="img" aria-label="Actividad de las últimas 12 semanas">${c}</div><p class="muted small">Cada cuadro es un día; las filas van de lunes a domingo.</p>`;
+  const earliest=entries.length?entries.map(e=>e.date.slice(0,7)).sort()[0]:cur;
+  let c=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].map(d=>`<span class="cal-h">${d}</span>`).join("");
+  for(let i=0;i<lead;i++)c+=`<span></span>`;
+  for(let d=1;d<=days;d++){
+    const ds=Y+"-"+pad(M)+"-"+pad(d),k=cnt[ds]||0;
+    c+=`<span class="cal-d${ds===t0?" today":""}${ds>t0?" fut":""}" data-n="${Math.min(2,k)}" title="${esc(fmt(ds))}: ${k} ${k===1?"registro":"registros"}" aria-label="${esc(fmt(ds))}: ${k} ${k===1?"registro":"registros"}">${d}</span>`;
+  }
+  return `<div class="row between"><b class="mes">${MESES[M-1]} ${Y}</b><div class="row" style="gap:4px"><button class="ghost" data-act="calprev" aria-label="Mes anterior" ${cm<=earliest?"disabled":""}>‹ Anterior</button><button class="ghost" data-act="calnext" aria-label="Mes siguiente" ${cm>=cur?"disabled":""}>Siguiente ›</button></div></div>
+  <div class="cal">${c}</div>
+  <p class="muted small">Cada cuadro es un día. El borde claro indica un registro y el color pleno, dos o más. El día de hoy tiene un contorno oscuro.</p>`;
 }
 function vProgreso(){
   const ts=act();
@@ -445,10 +459,15 @@ document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]");if(!b||b.tagName==="INPUT")return;
   const a=b.dataset.act,id=b.dataset.id;
   if(a==="example"){await loadExample()}
+  else if(a==="calprev"||a==="calnext"){let [y,m]=(calMonth||today().slice(0,7)).split("-").map(Number);m+=a==="calnext"?1:-1;if(m<1){m=12;y--}if(m>12){m=1;y++}calMonth=y+"-"+pad(m);render()}
   else if(a==="savetask"){try{await saveTask()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
   else if(a==="savelog"){try{if(logSave)await logSave()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
   else if(a==="log"){editingEntry=null;formTask=id;view="form";confirmKey=null;render();window.scrollTo(0,0)}
   else if(a==="cancellog"){const was=editingEntry,back=entryFrom||"progreso";entryFrom=null;editingEntry=null;formTask=null;if(was){go(back)}else{view="hoy"}render()}
+  else if(a==="edittoday"){
+    const es=eOf(id),td=es.filter(e=>e.date===today()),en=(td.length?td:es).slice(-1)[0];
+    if(!en){toast("Todavía no hay registros. Usa Registrar.");return}
+    entryFrom="hoy";editingEntry=en.id;formTask=id;view="form";confirmKey=null;render();window.scrollTo(0,0)}
   else if(a==="editentry"){const en=entries.find(x=>x.id===id);if(en){entryFrom=b.dataset.from||null;editingEntry=id;formTask=en.taskId;view="form";confirmKey=null;render();window.scrollTo(0,0)}}
   else if(a==="newtask"){go("tareas");editTask=true;render();window.scrollTo(0,0)}
   else if(a==="canceltask"){editTask=null;if(editFrom==="hoy")go("hoy");editFrom=null;render()}
@@ -497,5 +516,5 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-</body>
-</html>
+
+</body></html>
