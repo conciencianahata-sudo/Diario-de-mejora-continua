@@ -1,6 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Diario de mejora continua</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -56,6 +59,8 @@ button:disabled{opacity:.5;cursor:default}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
 label.f small{font-weight:400;color:var(--muted);font-size:13px}
+.tf{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
+.tf small{font-weight:400;color:var(--muted);font-size:13px}
 input[type=text],input[type=date],input[type=number],textarea,select{font:400 15px var(--text);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
 textarea{resize:vertical;min-height:64px}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
@@ -81,13 +86,16 @@ form[data-status="skipped"] .only-did{display:none}
 .hist{display:flex;flex-direction:column}
 .hist .item{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
 .hist .item>div{min-width:0;overflow-wrap:anywhere}
+.hist .item>div.acts{flex:none;display:flex;overflow-wrap:normal}
+.hist button{white-space:nowrap}
 ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20;max-width:90vw}
 svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
@@ -124,7 +132,7 @@ const FACTOR={si:1.01,parcial:1.005,no:1};
 
 /* ---------- estado ---------- */
 let tasks=[],entries=[],view="hoy",formTask=null,showArchived=false,editTask=null,chartTask=null,confirmKey=null;
-let db=null,base=null,loaded=false,logSave=null;
+let db=null,base=null,loaded=false,logSave=null,editingEntry=null,editFrom=null,entryFrom=null;
 
 /* ---------- persistencia: db privada del usuario + copia local ---------- */
 const LS="diario1pct.v1";
@@ -170,6 +178,7 @@ function streak(id){
 const act=()=>tasks.filter(t=>!t.archived).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
 const x=n=>"×"+n.toFixed(3);
 const fm=n=>(Math.round(n*10)/10).toString().replace(".",",");
+const dur=n=>{n=Math.round(n*10)/10;if(n<60)return fm(n)+" min";const h=Math.floor(n/60),m=Math.round((n-h*60)*10)/10;return h+" h"+(m?" "+fm(m)+" min":"")};
 function timeStats(id){
   const a=eOf(id).filter(e=>e.status==="done"&&e.minutes>0);
   if(!a.length)return null;
@@ -179,15 +188,15 @@ function timeStats(id){
 const sgn=p=>(p>0?"+":p<0?"−":"")+Math.abs(p)+" %";
 function timeLine(id){
   const s=timeStats(id);if(!s)return "";
-  return `<div class="small"><span class="label">Tiempo</span><br>${s.n>1?`Primera vez ${fm(s.first)} min → última ${fm(s.last)} min <span class="pill ${s.pct<=0?"good":"warn"}">${sgn(s.pct)}</span>`:`Última vez: ${fm(s.last)} min. Registra otra vez para comparar.`}</div>`;
+  return `<div class="small"><span class="label">Tiempo</span><br>${s.n>1?`Primera vez ${dur(s.first)} → última ${dur(s.last)} <span class="pill ${s.pct<=0?"good":"warn"}">${sgn(s.pct)}</span>`:`Última vez: ${dur(s.last)}. Registra otra vez para comparar.`}</div>`;
 }
 function timeHint(id){
   const s=timeStats(id);
-  return s?`La última vez fueron ${fm(s.last)} min. Solo se comparan las veces completas, no la versión de 2 minutos.`:"Sirve para comparar después. Solo se comparan las veces completas, no la versión de 2 minutos.";
+  return s?`La última vez fueron ${dur(s.last)}. Solo se comparan las veces completas, no la versión de 2 minutos.`:"Sirve para comparar después. Solo se comparan las veces completas, no la versión de 2 minutos.";
 }
 function timeChart(list){
   if(list.length<2)return `<p class="muted small">Con dos registros completos o más aparece la línea del tiempo.</p>`;
-  const W=640,H=220,m={l:46,r:16,t:14,b:30};
+  const W=640,H=220,m={l:76,r:16,t:14,b:30};
   const maxv=Math.max(...list.map(e=>e.minutes))*1.1;
   const X=i=>m.l+(W-m.l-m.r)*(i/(list.length-1));
   const Y=v=>H-m.b-(H-m.t-m.b)*(v/maxv);
@@ -195,8 +204,8 @@ function timeChart(list){
   const path=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
   const last=pts[pts.length-1];
   const ticks=[0,maxv/2,maxv];
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Minutos por vez: de ${fm(list[0].minutes)} a ${fm(list[list.length-1].minutes)} en ${list.length} registros">
-    ${ticks.map(v=>`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${Math.round(v)} min</text>`).join("")}
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Minutos por vez: de ${dur(list[0].minutes)} a ${dur(list[list.length-1].minutes)} en ${list.length} registros">
+    ${ticks.map(v=>`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end">${dur(Math.round(v))}</text>`).join("")}
     <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
     ${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--accent)"/>`).join("")}
     <circle cx="${last[0]}" cy="${last[1]}" r="5.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
@@ -207,8 +216,8 @@ function timeCard(t){
   if(!s)return `<div class="card"><h3>Tiempo por vez</h3><p class="muted small">Anota los minutos al registrar la tarea completa. Con dos registros o más verás aquí si el tiempo bajó.</p></div>`;
   const saved=s.first-s.last;
   return `<div class="card"><h3>Tiempo por vez</h3>
-    <div class="grid2"><div class="stat"><span class="label">Primera vez</span><b>${fm(s.first)} min</b></div><div class="stat"><span class="label">Última vez</span><b>${fm(s.last)} min</b></div><div class="stat"><span class="label">Mejor tiempo</span><b>${fm(s.best)} min</b></div><div class="stat"><span class="label">Promedio</span><b>${fm(s.avg)} min</b></div></div>
-    ${s.n>1?`<p>${saved>0?`Ahora tardas ${fm(saved)} min menos que la primera vez (${Math.abs(s.pct)} % menos).`:saved<0?`Ahora tardas ${fm(-saved)} min más que la primera vez. Revisa qué cambió en el proceso.`:"Tardas lo mismo que la primera vez."}</p>`:""}
+    <div class="grid2"><div class="stat"><span class="label">Primera vez</span><b>${dur(s.first)}</b></div><div class="stat"><span class="label">Última vez</span><b>${dur(s.last)}</b></div><div class="stat"><span class="label">Mejor tiempo</span><b>${dur(s.best)}</b></div><div class="stat"><span class="label">Promedio</span><b>${dur(s.avg)}</b></div></div>
+    ${s.n>1?`<p>${saved>0?`Ahora tardas ${dur(saved)} menos que la primera vez (${Math.abs(s.pct)} % menos).`:saved<0?`Ahora tardas ${dur(-saved)} más que la primera vez. Revisa qué cambió en el proceso.`:"Tardas lo mismo que la primera vez."}</p>`:""}
     ${timeChart(s.list)}
     <p class="muted small">Solo cuentan los registros con la tarea completa. Cuanto más baja la línea, menos tiempo toma.</p></div>`;
 }
@@ -251,7 +260,7 @@ function vHoy(){
       <div class="small"><span class="label">Mi 1% de hoy</span><br>${last&&last.next?esc(last.next):`<span class="muted">Todavía no definido. Lo escribes al registrar.</span>`}</div>
       ${t.standards&&t.standards.length?`<div class="small"><span class="label">Mi estándar actual</span><ul class="plain">${t.standards.slice(-3).map(s=>`<li>${esc(s.text)}</li>`).join("")}</ul></div>`:""}
       <div class="row between"><div class="row"><span class="pill ${S?"good":""}">${S} ${S===1?"día":"días"} seguidos</span>${doneToday?`<span class="pill good">Registrada hoy</span>`:`<span class="pill warn">Pendiente</span>`}</div>
-      <button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div>
+      <div class="row"><button data-act="edit" data-from="hoy" data-id="${t.id}">Editar tarea</button>${last?`<button data-act="editentry" data-from="hoy" data-id="${last.id}">Editar último registro</button>`:""}<button class="primary" data-act="log" data-id="${t.id}">${doneToday?"Registrar otra vez":"Registrar"}</button></div></div>
     </article>`}).join("");
   return h;
 }
@@ -286,7 +295,7 @@ function vForm(){
   const t=tasks.find(t=>t.id===formTask);if(!t)return "";
   const es=eOf(t.id),last=es[es.length-1];
   const prefill=last&&last.next?last.next:"";
-  return `<div><span class="label">${esc(t.name)}</span><h2>Registro</h2></div>
+  return `<div><span class="label">${esc(t.name)}</span><h2>${editingEntry?"Editar registro":"Registro"}</h2></div>
   <form class="card f" id="logform" data-status="done">
     <section><div class="step"><i>PLAN</i><h3>Mi 1% de esta vez</h3></div>
       <label class="f" for="lf-imp">¿Qué cambio pequeño voy a probar?<small>Un ajuste mínimo: menos pasos, mejor preparación, un obstáculo menos.</small>
@@ -294,7 +303,7 @@ function vForm(){
       <label class="f" for="lf-date">Fecha<input type="date" id="lf-date" value="${today()}" max="${today()}"></label></section>
     <section><div class="step"><i>HACER</i><h3>¿Qué pasó?</h3></div>
       <div class="seg" role="radiogroup" aria-label="Estado"><input type="radio" name="status" id="st-d" value="done" checked><label for="st-d">La hice completa</label><input type="radio" name="status" id="st-m" value="mini"><label for="st-m">Solo la versión de 2 min</label><input type="radio" name="status" id="st-s" value="skipped"><label for="st-s">No la hice</label></div>
-      <label class="f only-did" for="lf-min">Tiempo que tomó, en minutos<small>${timeHint(t.id)}</small><input type="number" id="lf-min" min="0" max="999" step="0.5" inputmode="decimal" placeholder="Ej.: 20"></label>
+      <div class="tf only-did" role="group" aria-labelledby="lf-tl"><span id="lf-tl">Tiempo que tomó</span><small>${timeHint(t.id)}</small><div class="row" style="flex-wrap:nowrap"><label class="f" for="lf-h" style="flex:1">Horas<input type="number" id="lf-h" min="0" max="99" step="1" inputmode="numeric" placeholder="0"></label><label class="f" for="lf-min" style="flex:1">Minutos<input type="number" id="lf-min" min="0" step="0.5" inputmode="decimal" placeholder="0"></label></div></div>
       <div class="only-skip" style="flex-direction:column;gap:10px"><p class="small muted">Cinco porqués: pregunta por qué una y otra vez hasta llegar a la causa, no al síntoma.</p>
         ${[1,2,3,4,5].map(i=>`<label class="f" for="lf-w${i}">${i===1?"No la hice. ¿Por qué?":"¿Y por qué?"}<input type="text" id="lf-w${i}"></label>`).join("")}</div></section>
     <section class="only-did"><div class="step"><i>VERIFICAR</i><h3>¿Funcionó el cambio?</h3></div>
@@ -306,12 +315,22 @@ function vForm(){
       <div class="seg only-did" role="radiogroup" aria-label="Decisión"><input type="radio" name="act" id="ac-e" value="estandarizar" checked><label for="ac-e">Queda como mi nueva forma</label><input type="radio" name="act" id="ac-a" value="ajustar"><label for="ac-a">Lo ajusto y lo pruebo otra vez</label><input type="radio" name="act" id="ac-d" value="descartar"><label for="ac-d">Lo descarto</label><input type="radio" name="act" id="ac-b" value="base"><label for="ac-b">Línea base</label></div>
       <p class="small muted only-did">Línea base: úsala la primera vez, para medir cómo haces la tarea hoy sin cambiar nada. No suma al nivel.</p>
       <label class="f" for="lf-next">Mi siguiente 1%<small>Esto aparece como tu plan la próxima vez.</small><textarea id="lf-next" placeholder="El próximo ajuste a probar"></textarea></label></section>
-    <div class="row"><button class="primary" type="button" data-act="savelog">Guardar registro</button><button type="button" data-act="cancellog">Cancelar</button></div>
+    <div class="row"><button class="primary" type="button" data-act="savelog">${editingEntry?"Guardar cambios":"Guardar registro"}</button><button type="button" data-act="cancellog">Cancelar</button></div>
   </form>`;
 }
 function bindForm(){
   const f=$("#logform");if(!f)return;
   const t=tasks.find(t=>t.id===formTask);
+  const cur=editingEntry?entries.find(x=>x.id===editingEntry):null;
+  if(cur){
+    const chk=(n,v)=>{const r=f.querySelector(`[name="${n}"][value="${v}"]`);if(r)r.checked=true};
+    $("#lf-imp").value=cur.improvement||"";$("#lf-date").value=cur.date;
+    chk("status",cur.status);f.dataset.status=cur.status;
+    {const mm=cur.minutes||0,hh=Math.floor(mm/60);$("#lf-h").value=hh||"";$("#lf-min").value=Math.round((mm-hh*60)*10)/10||""}
+    if(cur.status!=="skipped"){chk("worked",cur.worked);if(cur.sat)chk("sat",cur.sat);$("#lf-mu").value=cur.muda||"";$("#lf-notes").value=cur.notes||"";chk("act",cur.act)}
+    (cur.why||[]).forEach((w,i)=>{const el=$("#lf-w"+(i+1));if(el)el.value=w});
+    $("#lf-next").value=cur.next||"";
+  }
   f.addEventListener("change",e=>{
     if(e.target.name==="status"){f.dataset.status=e.target.value;
       if(e.target.value==="skipped"&&!$("#lf-next").value)$("#lf-next").value="Hacer la versión de 2 minutos"+(t&&t.mini?": "+t.mini:"");}
@@ -320,16 +339,17 @@ function bindForm(){
   logSave=async()=>{
     const v=n=>(f.querySelector(`[name="${n}"]:checked`)||{}).value;
     const status=v("status"),skipped=status==="skipped";
-    const en={id:uid(),taskId:t.id,date:$("#lf-date").value||today(),ts:Date.now(),status,
+    const cur0=editingEntry?entries.find(x=>x.id===editingEntry):null;
+    const en={id:cur0?cur0.id:uid(),taskId:t.id,date:$("#lf-date").value||today(),ts:cur0?cur0.ts:Date.now(),status,
       improvement:$("#lf-imp").value.trim(),worked:skipped?"no":v("worked"),sat:skipped?0:+v("sat"),
-      minutes:skipped?0:(+$("#lf-min").value||0),muda:skipped?"":$("#lf-mu").value,notes:skipped?"":$("#lf-notes").value.trim(),
+      minutes:skipped?0:((+$("#lf-h").value||0)*60+(+$("#lf-min").value||0)),muda:skipped?"":$("#lf-mu").value,notes:skipped?"":$("#lf-notes").value.trim(),
       act:skipped?"ajustar":v("act"),next:$("#lf-next").value.trim(),
       why:skipped?[1,2,3,4,5].map(i=>$("#lf-w"+i).value.trim()).filter(Boolean):[]};
-    entries.push(en);
+    if(cur0)entries=entries.map(x=>x.id===cur0.id?en:x);else entries.push(en);
     const p=[put("entradas",en)];
-    if(en.act==="estandarizar"&&en.improvement&&!skipped&&en.worked!=="no"){t.standards=(t.standards||[]).concat([{text:en.improvement,date:en.date}]);p.push(put("tareas",t))}
-    view="hoy";formTask=null;render();window.scrollTo(0,0);
-    toast(skipped?"Anotado. Mañana, la versión de 2 minutos.":(en.worked==="si"?"Listo: +1% acumulado":en.worked==="parcial"?"Listo: +0,5% acumulado":"Anotado. Lo que aprendiste también suma."));
+    if(en.act==="estandarizar"&&en.improvement&&!skipped&&en.worked!=="no"&&!(t.standards||[]).some(s=>s.text===en.improvement)){t.standards=(t.standards||[]).concat([{text:en.improvement,date:en.date}]);p.push(put("tareas",t))}
+    const wasEdit=!!cur0,back=entryFrom||"progreso";entryFrom=null;editingEntry=null;formTask=null;if(wasEdit){go(back)}else{view="hoy"}render();window.scrollTo(0,0);
+    toast(wasEdit?"Registro actualizado":skipped?"Anotado. Mañana, la versión de 2 minutos.":(en.worked==="si"?"Listo: +1% acumulado":en.worked==="parcial"?"Listo: +0,5% acumulado":"Anotado. Lo que aprendiste también suma."));
     await Promise.all(p);
   };
 }
@@ -377,9 +397,9 @@ function vProgreso(){
   <div class="card"><h3>Curva de mejora</h3>${lineChart(t)}<p class="muted small">Sube 1% por cada vez que el cambio funcionó y 0,5% si funcionó en parte. Lo que no funciona no resta: queda como aprendizaje. ${es.length?`Completas: ${full} de ${es.length} registros.`:""}</p></div>
   ${timeCard(t)}<div class="card"><h3>Constancia, todas las tareas</h3>${heat()}</div>
   <div class="card"><h3>Desperdicios más frecuentes</h3>${muk.length?muk.map(k=>`<div class="bar"><span>${esc(mudaName(k))}</span><span class="t" style="width:${Math.round(100*mu[k]/mx)}%"></span><b>${mu[k]}</b></div>`).join(""):`<p class="muted small">Aún no registraste ninguno. Al terminar una tarea, pregúntate dónde perdiste tiempo o energía.</p>`}</div>
-  <div class="card"><h3>Últimos registros</h3><div class="hist">${hist.length?hist.map(e=>`<div class="item"><div><b>${esc(fmt(e.date))}</b> · ${e.status==="skipped"?"No la hice":e.status==="mini"?"Versión de 2 min":"Completa"}${e.minutes?` · ${fm(e.minutes)} min`:""}${e.worked&&e.status!=="skipped"?` · ${e.worked==="si"?"funcionó":e.worked==="parcial"?"en parte":"no funcionó"}`:""}
+  <div class="card"><h3>Últimos registros</h3><div class="hist">${hist.length?hist.map(e=>`<div class="item"><div><b>${esc(fmt(e.date))}</b> · ${e.status==="skipped"?"No la hice":e.status==="mini"?"Versión de 2 min":"Completa"}${e.minutes?` · ${dur(e.minutes)}`:""}${e.worked&&e.status!=="skipped"?` · ${e.worked==="si"?"funcionó":e.worked==="parcial"?"en parte":"no funcionó"}`:""}
     ${e.improvement?`<div class="small muted">1%: ${esc(e.improvement)}</div>`:""}${e.notes?`<div class="small muted">Observé: ${esc(e.notes)}</div>`:""}${e.why&&e.why.length?`<div class="small muted">Porqués: ${e.why.map(esc).join(" → ")}</div>`:""}</div>
-    <button class="ghost danger" data-act="delentry" data-id="${e.id}">${confirmKey==="e"+e.id?"Confirmar":"Borrar"}</button></div>`).join(""):`<p class="muted small">Todavía no hay registros de esta tarea.</p>`}</div></div>`;
+    <div class="acts"><button class="ghost" data-act="editentry" data-id="${e.id}">Editar</button><button class="ghost danger" data-act="delentry" data-id="${e.id}">${confirmKey==="e"+e.id?"Confirmar":"Borrar"}</button></div></div>`).join(""):`<p class="muted small">Todavía no hay registros de esta tarea.</p>`}</div></div>`;
 }
 function vMetodo(){
   const c=(t,b)=>`<div class="card"><h3>${t}</h3>${b}</div>`;
@@ -427,11 +447,12 @@ document.addEventListener("click",async e=>{
   if(a==="example"){await loadExample()}
   else if(a==="savetask"){try{await saveTask()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
   else if(a==="savelog"){try{if(logSave)await logSave()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
-  else if(a==="log"){formTask=id;view="form";confirmKey=null;render();window.scrollTo(0,0)}
-  else if(a==="cancellog"){view="hoy";formTask=null;render()}
+  else if(a==="log"){editingEntry=null;formTask=id;view="form";confirmKey=null;render();window.scrollTo(0,0)}
+  else if(a==="cancellog"){const was=editingEntry,back=entryFrom||"progreso";entryFrom=null;editingEntry=null;formTask=null;if(was){go(back)}else{view="hoy"}render()}
+  else if(a==="editentry"){const en=entries.find(x=>x.id===id);if(en){entryFrom=b.dataset.from||null;editingEntry=id;formTask=en.taskId;view="form";confirmKey=null;render();window.scrollTo(0,0)}}
   else if(a==="newtask"){go("tareas");editTask=true;render();window.scrollTo(0,0)}
-  else if(a==="canceltask"){editTask=null;render()}
-  else if(a==="edit"){editTask=id;render();window.scrollTo(0,0)}
+  else if(a==="canceltask"){editTask=null;if(editFrom==="hoy")go("hoy");editFrom=null;render()}
+  else if(a==="edit"){go("tareas");editTask=id;editFrom=b.dataset.from||null;render();window.scrollTo(0,0)}
   else if(a==="archive"){const t=tasks.find(t=>t.id===id);t.archived=!t.archived;render();await put("tareas",t)}
   else if(a==="deltask"){
     if(confirmKey!=="t"+id){confirmKey="t"+id;render();return}
@@ -456,12 +477,12 @@ async function saveTask(){
   let t=id?tasks.find(t=>t.id===id):null;
   if(!t){t={id:uid(),createdAt:Date.now(),standards:[],archived:false};tasks.push(t)}
   Object.assign(t,{name,identity:g("tf-identity"),stack:g("tf-stack"),cue:g("tf-cue"),mini:g("tf-mini"),reward:g("tf-reward")});
-  editTask=null;render();toast("Tarea guardada");await put("tareas",t);
+  editTask=null;if(editFrom==="hoy")go("hoy");editFrom=null;render();toast("Tarea guardada");await put("tareas",t);
 }
 document.addEventListener("submit",e=>{e.preventDefault()});
 const VIEWS=["hoy","tareas","progreso","metodo"];
 function go(v){
-  view=v;formTask=null;editTask=null;confirmKey=null;
+  view=v;formTask=null;editTask=null;confirmKey=null;editFrom=null;editingEntry=null;entryFrom=null;
   try{history.replaceState(null,"","#"+v)}catch(e){}
 }
 document.getElementById("tabs").addEventListener("click",e=>{
@@ -476,5 +497,5 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-
-</body></html>
+</body>
+</html>
