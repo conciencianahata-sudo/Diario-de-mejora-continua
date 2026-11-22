@@ -113,7 +113,7 @@ svg text{fill:var(--muted);font:12px var(--text)}
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub"><b id="ver">Versión 20</b> · <span id="syncnote">Cargando…</span></span>
+      <span class="sub"><b id="ver">Versión 21</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -329,11 +329,12 @@ function vTareas(){
 function vForm(){
   const t=tasks.find(t=>t.id===formTask);if(!t)return "";
   const es=eOf(t.id),last=es[es.length-1];
-  const prefill=last&&last.next?last.next:"";
+  const lastImp=es.slice().reverse().find(e=>e.improvement&&e.improvement.trim());
+  const prefill=lastImp?lastImp.improvement:(last&&last.next?last.next:"");
   return `<div><span class="label">${esc(t.name)}</span><h2>${editingEntry?"Editar registro":"Registro"}</h2></div>
   <form class="card f" id="logform" data-status="done">
     <section><div class="step"><i>PLAN</i><h3>Mi 1% de esta vez</h3></div>
-      <label class="f" for="lf-imp">¿Qué cambio pequeño voy a probar?<small>Un ajuste mínimo: menos pasos, mejor preparación, un obstáculo menos.</small>
+      <label class="f" for="lf-imp">¿Qué cambio pequeño voy a probar?<small>Aparece la última mejora que registraste. Edítala si quieres probar otra.</small>
       <textarea id="lf-imp" placeholder="Dejar la plantilla abierta desde la mañana">${esc(prefill)}</textarea></label>
       <label class="f" for="lf-date">Fecha<input type="date" id="lf-date" value="${today()}" max="${today()}"></label></section>
     <section><div class="step"><i>HACER</i><h3>¿Qué pasó?</h3></div>
@@ -350,7 +351,7 @@ function vForm(){
     <section><div class="step"><i>ACTUAR</i><h3>¿Qué hago con esto?</h3></div>
       <div class="seg only-did" role="radiogroup" aria-label="Decisión"><input type="radio" name="act" id="ac-e" value="estandarizar" checked><label for="ac-e">Queda como mi nueva forma</label><input type="radio" name="act" id="ac-a" value="ajustar"><label for="ac-a">Lo ajusto y lo pruebo otra vez</label><input type="radio" name="act" id="ac-d" value="descartar"><label for="ac-d">Lo descarto</label><input type="radio" name="act" id="ac-b" value="base"><label for="ac-b">Línea base</label></div>
       <p class="small muted only-did">Línea base: úsala la primera vez, para medir cómo haces la tarea hoy sin cambiar nada. No suma al nivel.</p>
-      <label class="f" for="lf-next">Mi siguiente 1%<small>Esto aparece como tu plan la próxima vez.</small><textarea id="lf-next" placeholder="El próximo ajuste a probar"></textarea></label></section>
+      <label class="f" for="lf-next">Mi siguiente 1%<small>La idea que sigue. Se guarda en el registro y la ves en Hoy.</small><textarea id="lf-next" placeholder="El próximo ajuste a probar"></textarea></label></section>
     <div class="row"><button class="primary" type="button" data-act="savelog">${editingEntry?"Guardar cambios":"Guardar registro"}</button><button type="button" data-act="cancellog">Cancelar</button></div>
   </form>`;
 }
@@ -470,7 +471,7 @@ function vMetodo(){
   const c=(t,b)=>`<div class="card"><h3>${t}</h3>${b}</div>`;
   return `<h2>El método</h2><p class="muted">Este diario junta dos ideas: mejorar un poco cada vez (Hábitos atómicos) y revisar cómo trabajas en el lugar donde ocurre (Gemba Kaizen).</p>
   ${c("El 1%","<p>Mejorar 1% cada día durante un año da 1,01<sup>365</sup> ≈ 37 veces. Empeorar 1% al día lleva casi a cero. Los hábitos son el interés compuesto de la superación personal. Aquí el nivel de cada tarea sube cada vez que el cambio que probaste funcionó.</p>")}
-  ${c("Plan, Hacer, Verificar, Actuar","<p>Cada registro es un ciclo PDCA. <b>Plan:</b> el 1% que probarás. <b>Hacer:</b> la tarea. <b>Verificar:</b> si el cambio funcionó. <b>Actuar:</b> lo conviertes en estándar, lo ajustas o lo descartas. Tu “siguiente 1%” es el plan de la próxima vez, así que el ciclo no se corta.</p><p class='muted small'>Kaizen distingue mantener (SDCA: estandarizar y sostener lo que ya funciona) de mejorar (PDCA). Por eso lo que funciona pasa a tu “estándar actual”.</p>")}
+  ${c("Plan, Hacer, Verificar, Actuar","<p>Cada registro es un ciclo PDCA. <b>Plan:</b> el 1% que probarás. <b>Hacer:</b> la tarea. <b>Verificar:</b> si el cambio funcionó. <b>Actuar:</b> lo conviertes en estándar, lo ajustas o lo descartas. La mejora que registraste queda como punto de partida la próxima vez: la editas si quieres probar otra, y tu “siguiente 1%” guarda la idea que sigue, así que el ciclo no se corta.</p><p class='muted small'>Kaizen distingue mantener (SDCA: estandarizar y sostener lo que ya funciona) de mejorar (PDCA). Por eso lo que funciona pasa a tu “estándar actual”.</p>")}
   ${c("Las cuatro leyes en tu tarea","<ul class='plain'><li><b>Hazlo obvio:</b> la señal “Después de… haré… en…”.</li><li><b>Hazlo atractivo:</b> la identidad “Soy alguien que…”.</li><li><b>Hazlo sencillo:</b> la versión de 2 minutos y quitar pasos.</li><li><b>Hazlo satisfactorio:</b> la recompensa y marcar el registro.</li></ul>")}
   ${c("Nunca falles dos veces","<p>Fallar un día pasa. Lo que importa es no encadenar dos. Si registras “No la hice”, el diario te recuerda hacer la versión de 2 minutos la próxima vez y te pide los cinco porqués para encontrar la causa.</p>")}
   ${c("Muda: los siete desperdicios","<p>Muda es toda actividad que no agrega valor. Kaizen los clasifica en siete tipos: sobreproducción, inventario, defectos, movimiento, procesamiento, espera y transporte. Aquí los usas para encontrar el siguiente 1%: casi siempre es quitar algo, no agregar.</p>")}
