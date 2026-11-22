@@ -61,7 +61,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14p
 label.f small{font-weight:400;color:var(--muted);font-size:13px}
 .tf{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
 .tf small{font-weight:400;color:var(--muted);font-size:13px}
-input[type=text],input[type=date],input[type=number],textarea,select{font:400 15px var(--text);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
+input[type=text],input[type=date],input[type=number],input[type=time],textarea,select{font:400 15px var(--text);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
 textarea{resize:vertical;min-height:64px}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg input{position:absolute;opacity:0;pointer-events:none}
@@ -113,7 +113,7 @@ svg text{fill:var(--muted);font:12px var(--text)}
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub"><b id="ver">Versión 19</b> · <span id="syncnote">Cargando…</span></span>
+      <span class="sub"><b id="ver">Versión 20</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -211,6 +211,8 @@ function regBlock(id){
     +row("Fecha",fmt(en.date))
     +row("¿Qué cambio pequeño voy a probar?",en.improvement)
     +row("Hacer: ¿Qué pasó?",ST_TXT[en.status])
+    +row("Hora de inicio",en.start)
+    +row("Hora de conclusión",en.end)
     +row("Tiempo que tomó",en.minutes?dur(en.minutes):"")
     +row("Verificar: ¿Funcionó el cambio?",sk?"":WK_TXT[en.worked])
     +row("¿Qué tan satisfecho quedé?",en.sat?en.sat+" de 5":"")
@@ -336,7 +338,8 @@ function vForm(){
       <label class="f" for="lf-date">Fecha<input type="date" id="lf-date" value="${today()}" max="${today()}"></label></section>
     <section><div class="step"><i>HACER</i><h3>¿Qué pasó?</h3></div>
       <div class="seg" role="radiogroup" aria-label="Estado"><input type="radio" name="status" id="st-d" value="done" checked><label for="st-d">La hice completa</label><input type="radio" name="status" id="st-m" value="mini"><label for="st-m">Solo la versión de 2 min</label><input type="radio" name="status" id="st-s" value="skipped"><label for="st-s">No la hice</label></div>
-      <div class="tf only-did" role="group" aria-labelledby="lf-tl"><span id="lf-tl">Tiempo que tomó</span><small>${timeHint(t.id)}</small><div class="row" style="flex-wrap:nowrap"><label class="f" for="lf-h" style="flex:1">Horas<input type="number" id="lf-h" min="0" max="99" step="1" inputmode="numeric" placeholder="0"></label><label class="f" for="lf-min" style="flex:1">Minutos<input type="number" id="lf-min" min="0" step="0.5" inputmode="decimal" placeholder="0"></label></div></div>
+      <div class="row only-did" style="flex-wrap:nowrap;align-items:flex-start"><label class="f" for="lf-start" style="flex:1">Hora de inicio<input type="time" id="lf-start"></label><label class="f" for="lf-end" style="flex:1">Hora de conclusión<input type="time" id="lf-end"></label></div>
+      <label class="f only-did" for="lf-dur">Tiempo que tomó<small>Se calcula con las dos horas. ${timeHint(t.id)}</small><input type="text" id="lf-dur" readonly value="—" aria-live="polite" style="font-weight:600"></label>
       <div class="only-skip" style="flex-direction:column;gap:10px"><p class="small muted">Cinco porqués: pregunta por qué una y otra vez hasta llegar a la causa, no al síntoma.</p>
         ${[1,2,3,4,5].map(i=>`<label class="f" for="lf-w${i}">${i===1?"No la hice. ¿Por qué?":"¿Y por qué?"}<input type="text" id="lf-w${i}"></label>`).join("")}</div></section>
     <section class="only-did"><div class="step"><i>VERIFICAR</i><h3>¿Funcionó el cambio?</h3></div>
@@ -351,6 +354,14 @@ function vForm(){
     <div class="row"><button class="primary" type="button" data-act="savelog">${editingEntry?"Guardar cambios":"Guardar registro"}</button><button type="button" data-act="cancellog">Cancelar</button></div>
   </form>`;
 }
+function calcMin(a,b){
+  if(!a||!b)return null;
+  const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number);
+  if([h1,m1,h2,m2].some(n=>isNaN(n)))return null;
+  let d=(h2*60+m2)-(h1*60+m1);
+  if(d<0)d+=1440;
+  return d;
+}
 function bindForm(){
   const f=$("#logform");if(!f)return;
   const t=tasks.find(t=>t.id===formTask);
@@ -359,11 +370,20 @@ function bindForm(){
     const chk=(n,v)=>{const r=f.querySelector(`[name="${n}"][value="${v}"]`);if(r)r.checked=true};
     $("#lf-imp").value=cur.improvement||"";$("#lf-date").value=cur.date;
     chk("status",cur.status);f.dataset.status=cur.status;
-    {const mm=cur.minutes||0,hh=Math.floor(mm/60);$("#lf-h").value=hh||"";$("#lf-min").value=Math.round((mm-hh*60)*10)/10||""}
+    $("#lf-start").value=cur.start||"";$("#lf-end").value=cur.end||"";
     if(cur.status!=="skipped"){chk("worked",cur.worked);if(cur.sat)chk("sat",cur.sat);$("#lf-mu").value=cur.muda||"";$("#lf-notes").value=cur.notes||"";chk("act",cur.act)}
     (cur.why||[]).forEach((w,i)=>{const el=$("#lf-w"+(i+1));if(el)el.value=w});
     $("#lf-next").value=cur.next||"";
   }
+  const upd=()=>{
+    const a=$("#lf-start").value,b=$("#lf-end").value,d=calcMin(a,b),out=$("#lf-dur");
+    if(d!=null)out.value=d===0?"Revisa las horas: son iguales":dur(d)+(b<a?" (pasa de medianoche)":"");
+    else if(a&&!b)out.value="Falta la hora de conclusión";
+    else if(!a&&b)out.value="Falta la hora de inicio";
+    else out.value=(cur&&cur.minutes&&!cur.start&&!cur.end)?dur(cur.minutes)+" (registro anterior, sin horas)":"—";
+  };
+  f.addEventListener("input",e=>{if(e.target.id==="lf-start"||e.target.id==="lf-end")upd()});
+  upd();
   f.addEventListener("change",e=>{
     if(e.target.name==="status"){f.dataset.status=e.target.value;
       if(e.target.value==="skipped"&&!$("#lf-next").value)$("#lf-next").value="Hacer la versión de 2 minutos"+(t&&t.mini?": "+t.mini:"");}
@@ -373,9 +393,11 @@ function bindForm(){
     const v=n=>(f.querySelector(`[name="${n}"]:checked`)||{}).value;
     const status=v("status"),skipped=status==="skipped";
     const cur0=editingEntry?entries.find(x=>x.id===editingEntry):null;
+    const sv=$("#lf-start").value,ev=$("#lf-end").value,cm=calcMin(sv,ev);
+    const minNew=cm!=null?cm:((cur0&&!cur0.start&&!cur0.end)?(cur0.minutes||0):0);
     const en={id:cur0?cur0.id:uid(),taskId:t.id,date:$("#lf-date").value||today(),ts:cur0?cur0.ts:Date.now(),status,
       improvement:$("#lf-imp").value.trim(),worked:skipped?"no":v("worked"),sat:skipped?0:+v("sat"),
-      minutes:skipped?0:((+$("#lf-h").value||0)*60+(+$("#lf-min").value||0)),muda:skipped?"":$("#lf-mu").value,notes:skipped?"":$("#lf-notes").value.trim(),
+      minutes:skipped?0:minNew,start:skipped?"":sv,end:skipped?"":ev,muda:skipped?"":$("#lf-mu").value,notes:skipped?"":$("#lf-notes").value.trim(),
       act:skipped?"ajustar":v("act"),next:$("#lf-next").value.trim(),
       why:skipped?[1,2,3,4,5].map(i=>$("#lf-w"+i).value.trim()).filter(Boolean):[]};
     if(cur0)entries=entries.map(x=>x.id===cur0.id?en:x);else entries.push(en);
@@ -469,12 +491,12 @@ async function loadExample(){
     stack:"terminar de cenar",cue:"llevar los platos al fregadero y lavarlos antes de sentarme a descansar",
     mini:"lavar un solo vaso",reward:"ver la cocina limpia y tomarme un té"};
   const R=[
-    {status:"done",minutes:25,improvement:"Línea base: lavar como siempre y cronometrar",worked:"parcial",sat:3,muda:"movimiento",notes:"Tardé 25 minutos; perdí tiempo buscando la esponja y el jabón.",act:"base",next:"Dejar la esponja y el jabón junto al fregadero antes de cenar",why:[]},
-    {status:"done",minutes:20,improvement:"Dejar la esponja y el jabón junto al fregadero antes de cenar",worked:"si",sat:4,muda:"movimiento",notes:"Ya no busqué nada. Bajó a 20 minutos.",act:"estandarizar",next:"Remojar las ollas con agua y jabón mientras ceno",why:[]},
-    {status:"done",minutes:15,improvement:"Remojar las ollas con agua y jabón mientras ceno",worked:"si",sat:4,muda:"espera",notes:"Las ollas salieron casi solas. Esperé a que se calentara el agua.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
+    {status:"done",minutes:25,start:"20:00",end:"20:25",improvement:"Línea base: lavar como siempre y cronometrar",worked:"parcial",sat:3,muda:"movimiento",notes:"Tardé 25 minutos; perdí tiempo buscando la esponja y el jabón.",act:"base",next:"Dejar la esponja y el jabón junto al fregadero antes de cenar",why:[]},
+    {status:"done",minutes:20,start:"20:00",end:"20:20",improvement:"Dejar la esponja y el jabón junto al fregadero antes de cenar",worked:"si",sat:4,muda:"movimiento",notes:"Ya no busqué nada. Bajó a 20 minutos.",act:"estandarizar",next:"Remojar las ollas con agua y jabón mientras ceno",why:[]},
+    {status:"done",minutes:15,start:"20:00",end:"20:15",improvement:"Remojar las ollas con agua y jabón mientras ceno",worked:"si",sat:4,muda:"espera",notes:"Las ollas salieron casi solas. Esperé a que se calentara el agua.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
     {status:"skipped",minutes:0,improvement:"Poner a calentar el agua al empezar a cenar",worked:"no",sat:0,muda:"",notes:"",act:"ajustar",next:"Hacer la versión de 2 minutos: lavar un vaso",why:["Estaba muy cansado y me fui a dormir","Cené tarde","Salí tarde del trabajo","No dejé un plan para los días largos","Mi tarea no tenía una versión mínima para esos días"]},
-    {status:"mini",minutes:10,improvement:"Empezar siempre con un vaso para romper la inercia",worked:"si",sat:4,muda:"",notes:"Empecé con un vaso y terminé lavando todo en 10 minutos.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
-    {status:"done",minutes:12,improvement:"Poner a calentar el agua al empezar a cenar",worked:"parcial",sat:4,muda:"procesamiento",notes:"Salió bien, pero enjuagué los platos dos veces sin necesidad.",act:"ajustar",next:"Enjuagar una sola vez, con el grifo medio abierto",why:[]}
+    {status:"mini",minutes:10,start:"20:00",end:"20:10",improvement:"Empezar siempre con un vaso para romper la inercia",worked:"si",sat:4,muda:"",notes:"Empecé con un vaso y terminé lavando todo en 10 minutos.",act:"estandarizar",next:"Poner a calentar el agua al empezar a cenar",why:[]},
+    {status:"done",minutes:12,start:"20:00",end:"20:12",improvement:"Poner a calentar el agua al empezar a cenar",worked:"parcial",sat:4,muda:"procesamiento",notes:"Salió bien, pero enjuagué los platos dos veces sin necesidad.",act:"ajustar",next:"Enjuagar una sola vez, con el grifo medio abierto",why:[]}
   ];
   const es=R.map((r,i)=>Object.assign({id:uid(),taskId:t.id,date:addDays(today(),-(6-i)),ts:Date.now()+i},r));
   es.forEach(en=>{if(en.act==="estandarizar"&&en.status!=="skipped"&&en.worked!=="no")t.standards.push({text:en.improvement,date:en.date})});
