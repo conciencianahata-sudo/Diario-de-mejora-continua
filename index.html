@@ -1,9 +1,4 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Diario de mejora continua</title>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Diario de mejora continua</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -107,13 +102,12 @@ svg text{fill:var(--muted);font:12px var(--text)}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 @media (max-width:480px){h1{font-size:25px}.bar{grid-template-columns:90px 1fr 22px}}
 </style>
-</head>
-<body>
+</head><body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
       <h1>Diario de mejora continua</h1>
-      <span class="sub"><b id="ver">Versión 21</b> · <span id="syncnote">Cargando…</span></span>
+      <span class="sub"><b id="ver">Versión 23</b> · <span id="syncnote">Cargando…</span></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
@@ -513,7 +507,7 @@ function backupCard(){
   let body="";
   if(backupMode==="export")body=`<label class="f" for="bk-out">Tus datos (${nT} y ${nE})<small>Copia todo este texto y pégalo en Importar datos del otro lugar.</small><textarea id="bk-out" readonly style="${st}">${esc(backupTxt)}</textarea></label><div class="row"><button class="primary" data-act="copyexport">Copiar texto</button><button data-act="closebackup">Cerrar</button></div>`;
   else if(backupMode==="import")body=`<label class="f" for="bk-in">Pega aquí los datos exportados<small>Se suman a lo que ya tienes. Si una tarea o un registro ya existe, se actualiza. No se borra nada.</small><textarea id="bk-in" style="${st}"></textarea></label><label class="f" for="bk-file">O elige el archivo guardado<input type="file" id="bk-file" accept=".json,.txt,text/plain,application/json"></label><div class="row"><button class="primary" data-act="doimport">Importar</button><button data-act="closebackup">Cancelar</button></div>`;
-  return `<div class="card" id="backup"><h3>Copia de seguridad</h3><p class="muted small">Lleva tus tareas y registros de un lugar a otro, por ejemplo de la app en Claude al archivo descargado. La app en Claude y cada archivo descargado guardan sus datos por separado, por eso no se ven entre sí hasta que importas.</p><div class="row"><button data-act="exportdata">Exportar datos</button><button data-act="showimport">Importar datos</button></div>${body}</div>`;
+  return `<div class="card" id="backup"><h3>Copia de seguridad</h3><p class="muted small">Descarga un archivo con tus tareas y registros, y restáuralo después donde quieras, por ejemplo en el archivo descargado de la app. La app en Claude y cada archivo descargado guardan sus datos por separado, por eso no se ven entre sí hasta que restauras.</p><div class="row"><button class="primary" data-act="dlbackup">Descargar backup</button><button data-act="pickrestore">Restaurar desde archivo</button></div><input type="file" id="bk-restore" accept=".json,application/json,.txt" style="display:none">${body}</div>`;
 }
 function copyText(txt){
   try{navigator.clipboard.writeText(txt).then(()=>toast("Datos copiados. Pégalos en Importar datos."),()=>toast("Selecciona el texto y cópialo"))}catch(e){toast("Selecciona el texto y cópialo")}
@@ -527,8 +521,25 @@ function doExport(){
 function copyExport(){const ta=$("#bk-out");if(ta){ta.focus();ta.select()}copyText(backupTxt)}
 const OKID=/^[A-Za-z0-9_\-.~:@+]{1,100}$/;
 const idOk=v=>typeof v==="string"&&OKID.test(v)&&v!=="."&&v!=="..";
+function backupJson(){return JSON.stringify({app:"diario-mejora-continua",formato:1,exportado:new Date().toISOString(),tasks,entries},null,2)}
+async function dlBackup(){
+  const name="diario-backup-"+today()+".json",txt=backupJson();
+  let dl=null;try{dl=await window.claude.use("downloads")}catch(e){}
+  if(dl){
+    try{const r=await dl.save({filename:name,data:txt});toast(r&&r.status==="saved"?"Backup descargado ("+name+")":"Backup enviado");return}
+    catch(e){if(e&&e.code==="declined"){toast("Descarga cancelada");return}}
+  }
+  try{
+    const u=URL.createObjectURL(new Blob([txt],{type:"application/json"})),a=document.createElement("a");
+    a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+    toast("Backup descargado ("+name+")");
+  }catch(e){doExport();toast("No se pudo crear el archivo. Copia el texto y guárdalo en un .json")}
+}
 async function doImport(){
-  const ta=$("#bk-in"),raw=ta?ta.value.trim():"";
+  const ta=$("#bk-in");await importText(ta?ta.value:"");
+}
+async function importText(raw0){
+  const raw=String(raw0||"").trim();
   if(!raw){toast("Pega primero los datos exportados");return}
   let j;try{j=JSON.parse(raw)}catch(e){toast("Ese texto no es v\u00e1lido. Copia todo el contenido exportado.");return}
   if(!j||!Array.isArray(j.tasks)||!Array.isArray(j.entries)){toast("Estos datos no son de este diario");return}
@@ -551,11 +562,13 @@ document.addEventListener("click",async e=>{
   const a=b.dataset.act,id=b.dataset.id;
   if(a==="example"){await loadExample()}
   else if(a==="exportdata"){doExport()}
+  else if(a==="dlbackup"){try{await dlBackup()}catch(err){toast("No se pudo descargar: "+((err&&err.message)||err))}}
+  else if(a==="pickrestore"){const i=$("#bk-restore");if(i){i.value="";i.click()}}
   else if(a==="copyexport"){copyExport()}
   else if(a==="showimport"){backupMode=backupMode==="import"?null:"import";render();const bi=$("#bk-in");if(bi){bi.scrollIntoView({block:"center"});bi.focus()}}
   else if(a==="closebackup"){backupMode=null;render()}
   else if(a==="doimport"){try{await doImport()}catch(err){toast("No se pudo importar: "+((err&&err.message)||err))}}
-  else if(a==="gobackup"){go("tareas");backupMode="import";render();window.scrollTo(0,0);const bi=$("#bk-in");if(bi){bi.scrollIntoView({block:"center"});bi.focus()}}
+  else if(a==="gobackup"){go("tareas");render();const bk=$("#backup");if(bk)bk.scrollIntoView({block:"center"})}
   else if(a==="calprev"||a==="calnext"){let [y,m]=(calMonth||today().slice(0,7)).split("-").map(Number);m+=a==="calnext"?1:-1;if(m<1){m=12;y--}if(m>12){m=1;y++}calMonth=y+"-"+pad(m);render()}
   else if(a==="savetask"){try{await saveTask()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
   else if(a==="savelog"){try{if(logSave)await logSave()}catch(err){toast("No se pudo guardar: "+((err&&err.message)||err))}}
@@ -580,6 +593,7 @@ document.addEventListener("click",async e=>{
     confirmKey=null;entries=entries.filter(e=>e.id!==id);render();await del("entradas",id)}
 });
 document.addEventListener("change",e=>{
+  if(e.target.id==="bk-restore"){const f=e.target.files&&e.target.files[0];if(f){const r=new FileReader();r.onload=async()=>{try{await importText(String(r.result))}catch(err){toast("No se pudo restaurar: "+((err&&err.message)||err))}};r.onerror=()=>toast("No se pudo leer el archivo");r.readAsText(f)}}
   if(e.target.id==="bk-file"){const f=e.target.files&&e.target.files[0];if(f){const r=new FileReader();r.onload=()=>{const ta=$("#bk-in");if(ta)ta.value=String(r.result)};r.readAsText(f)}}
   if(e.target.id==="pt"){chartTask=e.target.value;render()}
   if(e.target.dataset&&e.target.dataset.act==="arch0"){showArchived=false;render()}
@@ -614,5 +628,4 @@ view=["hoy","tareas","progreso","metodo"].includes((location.hash||"").slice(1))
 boot();
 })();
 </script>
-</body>
-</html>
+</body></html>
